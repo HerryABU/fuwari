@@ -42,3 +42,5 @@ server/data/
 # runtime blog content working copy (seeded from src/content/posts; root-level only,
 # note the leading slash: src/content/ is source code and must stay tracked)
 /content/
+# the server-side runtime working copy as well
+server/content/
