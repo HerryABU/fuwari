@@ -94,6 +94,8 @@ Check out the [Contributing Guide](https://github.com/saicaca/fuwari/blob/main/C
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsaicaca%2Ffuwari.svg?type=large&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsaicaca%2Ffuwari?ref=badge_large&issueType=license)
+- This repository is a derivative work based on the [Fuwari](https://github.com/saicaca/fuwari) blog theme by saicaca (MIT License). The original copyright notice is preserved in [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).
+- If you deploy this program as a network service, you MUST provide your users with access to the corresponding source code (see AGPL v3.0 section 13 and [NOTICE](./NOTICE)).
+- See [LICENSE](./LICENSE) for the full license text and [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) for bundled third-party components.

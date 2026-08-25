@@ -1,0 +1,37 @@
+# Fuwari Blog System
+
+Copyright (C) 2026 Fuwari contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+## Derivative Work Notice
+
+This project is a derivative work based on the Fuwari blog theme,
+originally developed by saicaca and released under the MIT License:
+
+  Fuwari (c) 2024 saicaca
+  https://github.com/saicaca/fuwari
+  License: MIT
+
+The original MIT license notice of the upstream project is preserved in
+THIRD-PARTY-NOTICES.md. Modifications made in this repository (Go backend,
+database-backed comments, file-system content service, Cherry Markdown
+integration, re-licensing) are licensed under the GNU AGPL v3.0 as stated
+in the LICENSE file of this repository.
+
+## Interactive Network Service
+
+This program is a network service (blog server). Under AGPL v3.0 section 13,
+operators offering this program as a service over a computer network MUST
+provide users with access to the Corresponding Source of the running version.
