@@ -1,5 +1,7 @@
 # build output
 dist/
+# server/dist is embedded into the Go binary (go:embed) — keep it tracked
+!server/dist/
 
 # generated types
 .astro/
@@ -29,3 +31,14 @@ yarn.lock
 # ide
 .idea
 *.iml
+
+# ==================== fuwari-server runtime ====================
+# Go build artifacts
+*.exe
+server/fuwari-server
+# runtime database & logs
+data/
+server/data/
+# runtime blog content working copy (seeded from src/content/posts; root-level only,
+# note the leading slash: src/content/ is source code and must stay tracked)
+/content/

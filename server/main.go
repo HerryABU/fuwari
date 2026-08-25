@@ -1,0 +1,219 @@
+// fuwari-server 入口：
+//  1. 数据库（SQLite）存储评论；
+//  2. 文件系统存储博客内容（运行时内容目录 + 种子目录）；
+//  3. 内嵌 Astro 前端构建产物，单二进制交付完整博客站点；
+//  4. 集成 Cherry Markdown 编辑器（/editor）与文章页评论挂件。
+package main
+
+import (
+	"embed"
+	"fmt"
+	"io/fs"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"fuwari-server/config"
+	"fuwari-server/handlers"
+	"fuwari-server/models"
+	"fuwari-server/security"
+	"fuwari-server/version"
+
+	"github.com/gin-gonic/gin"
+)
+
+//go:embed all:dist
+var distFS embed.FS
+
+func main() {
+	// 确保工作目录为可执行文件所在目录（双击启动时工作目录可能不是程序目录）
+	if exePath, err := os.Executable(); err == nil {
+		if dir := filepath.Dir(exePath); dir != "" {
+			_ = os.Chdir(dir)
+		}
+	}
+
+	config.Init()
+
+	// 确保内容目录存在，并从种子目录初始化
+	if err := ensureContentDirs(); err != nil {
+		log.Fatalf("内容目录初始化失败: %v", err)
+	}
+
+	// 初始化数据库
+	if err := models.InitDatabase(); err != nil {
+		log.Fatalf("数据库初始化失败: %v", err)
+	}
+	log.Println("数据库初始化完成")
+
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery())
+
+	// 健康检查
+	r.GET("/health", func(c *gin.Context) {
+		if strings.Contains(c.GetHeader("Accept"), "application/json") {
+			c.JSON(http.StatusOK, handlers.CollectHealth())
+			return
+		}
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(healthHTML()))
+	})
+	r.GET("/api/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, handlers.CollectHealth())
+	})
+
+	// ==================== API 路由 ====================
+
+	// 公开读取
+	r.GET("/api/comments", handlers.GetComments)
+	r.GET("/api/posts", handlers.ListPosts)
+	r.GET("/api/posts/:slug", handlers.GetPost)
+	r.GET("/api/posts/:slug/raw", handlers.GetPostRaw)
+
+	// 管理令牌保护
+	admin := r.Group("/api")
+	admin.Use(security.AdminAuth())
+	{
+		admin.POST("/comments", handlers.CreateComment)
+		admin.DELETE("/comments/:id", handlers.DeleteComment)
+		admin.POST("/posts", handlers.CreatePost)
+		admin.PUT("/posts/:slug", handlers.UpdatePost)
+		admin.DELETE("/posts/:slug", handlers.DeletePost)
+	}
+
+	// 静态资源挂载：/static/* -> /_astro 等构建产物别名（见 NoRoute）
+
+	// ==================== 前端静态文件服务 ====================
+
+	frontendFS, err := fs.Sub(distFS, "dist")
+	if err != nil {
+		log.Fatalf("前端资源加载失败（dist 目录不存在，请先构建前端并同步到 server/dist）: %v", err)
+	}
+
+	r.NoRoute(func(c *gin.Context) {
+		path := c.Request.URL.Path
+
+		// /api/* 未匹配 → 404（JSON），不落回前端
+		if strings.HasPrefix(path, "/api/") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":    4,
+				"message": "接口不存在",
+				"data":    nil,
+			})
+			return
+		}
+
+		// 路径穿越防护
+		if strings.Contains(path, "..") {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		// 尝试匹配嵌入的静态资源
+		cleanPath := strings.TrimPrefix(path, "/")
+		if cleanPath == "" {
+			cleanPath = "index.html"
+		}
+
+		if f, err := frontendFS.Open(cleanPath); err == nil {
+			f.Close()
+			if strings.HasPrefix(cleanPath, "_astro/") {
+				// Astro 产物带内容 hash，可长期缓存
+				c.Header("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				c.Header("Cache-Control", "public, max-age=3600")
+			}
+			http.FileServer(http.FS(frontendFS)).ServeHTTP(c.Writer, c.Request)
+			return
+		}
+
+		// 非资源请求 → 返回 index.html（由 swup 接管页面过渡）
+		if indexContent, err := fs.ReadFile(frontendFS, "index.html"); err == nil {
+			c.Header("Cache-Control", "no-cache")
+			c.Header("Content-Type", "text/html; charset=utf-8")
+			c.Data(http.StatusOK, "text/html; charset=utf-8", indexContent)
+			return
+		}
+
+		c.Status(http.StatusNotFound)
+	})
+
+	listenAddr := "0.0.0.0:" + config.ServerPort
+	log.Println("========================================")
+	log.Printf("  Fuwari Server v%s", version.AppVersion)
+	log.Printf("  监听地址: %s", listenAddr)
+	log.Println("  博客内容目录:", config.PostsDir)
+	log.Printf("  编辑器入口: http://localhost:%s/editor", config.ServerPort)
+	log.Println("========================================")
+
+	if err := http.ListenAndServe(listenAddr, r); err != nil {
+		log.Fatalf("服务器启动失败: %v", err)
+	}
+}
+
+// ensureContentDirs 确保运行时内容目录存在；为空时从种子目录复制初始文章
+func ensureContentDirs() error {
+	if err := os.MkdirAll(config.PostsDir, 0755); err != nil {
+		return err
+	}
+
+	// 检查运行时目录是否已有 .md 文件
+	entries, err := os.ReadDir(config.PostsDir)
+	if err != nil {
+		return err
+	}
+	empty := true
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(strings.ToLower(e.Name()), ".md") {
+			empty = false
+			break
+		}
+		if e.IsDir() {
+			// 子目录内可能有 index.md
+			if sub, _ := filepath.Glob(filepath.Join(config.PostsDir, e.Name(), "*.md")); len(sub) > 0 {
+				empty = false
+				break
+			}
+		}
+	}
+	if !empty {
+		return nil
+	}
+
+	// 从种子目录复制（若存在）
+	if _, err := os.Stat(config.SrcPostsDir); err != nil {
+		return nil
+	}
+	log.Printf("内容目录为空，从种子目录初始化: %s -> %s", config.SrcPostsDir, config.PostsDir)
+	return copyTree(config.SrcPostsDir, config.PostsDir)
+}
+
+// copyTree 递归复制目录树
+func copyTree(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		target := filepath.Join(dst, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0644)
+	})
+}
+
+// healthHTML 浏览器访问 /health 时的简单状态页
+func healthHTML() string {
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>Fuwari Server</title>
+<style>body{font-family:system-ui,sans-serif;background:#f6f7fb;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}.card{background:#fff;border-radius:12px;padding:40px 56px;text-align:center;box-shadow:0 2px 20px rgba(0,0,0,.08)}.dot{display:inline-block;width:12px;height:12px;border-radius:50%%;background:#22c55e;margin-right:8px}h1{font-size:1.3rem;color:#1a1a2e;margin:0 0 8px}p{color:#666}</style></head>
+<body><div class="card"><h1><span class="dot"></span>Fuwari Server v%s</h1><p>服务运行中</p></div></body></html>`, version.AppVersion)
+}
