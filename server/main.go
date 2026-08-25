@@ -111,6 +111,13 @@ func main() {
 			return
 		}
 
+		// 运行时内容目录静态资源（编辑器创建的图文文章的相对路径附件）
+		if filePath, ok := handlers.ResolveContentAsset(path); ok {
+			c.Header("Cache-Control", "public, max-age=3600")
+			c.File(filePath)
+			return
+		}
+
 		// 尝试匹配嵌入的静态资源
 		cleanPath := strings.TrimPrefix(path, "/")
 		if cleanPath == "" {
@@ -153,6 +160,40 @@ func main() {
 	}
 }
 
+// locateSrcPosts 定位种子内容目录。
+// 由于 exe 启动时会 chdir 到自身所在目录（通常为 server/），
+// 相对路径 ./src/content/posts 会失效，因此在多个候选基址中探测：
+//  1. 配置值按当前工作目录解析；
+//  2. 配置值按 exe 父目录解析（即仓库根，exe 在 server/ 时）；
+//  3. 显式的 ../src/content/posts 兜底。
+// 返回第一个存在且包含 .md 文件的目录；找不到返回空串。
+func locateSrcPosts() string {
+	candidates := []string{config.SrcPostsDir}
+	if exePath, err := os.Executable(); err == nil {
+		dir := filepath.Dir(exePath)
+		candidates = append(candidates,
+			filepath.Join(dir, "..", filepath.ToSlash(config.SrcPostsDir)),
+			filepath.Join(dir, "..", "src", "content", "posts"),
+		)
+	}
+	for _, c := range candidates {
+		if c == "" {
+			continue
+		}
+		abs, err := filepath.Abs(c)
+		if err != nil {
+			continue
+		}
+		if info, err := os.Stat(abs); err != nil || !info.IsDir() {
+			continue
+		}
+		if mds, _ := filepath.Glob(filepath.Join(abs, "*.md")); len(mds) > 0 {
+			return abs
+		}
+	}
+	return ""
+}
+
 // ensureContentDirs 确保运行时内容目录存在；为空时从种子目录复制初始文章
 func ensureContentDirs() error {
 	if err := os.MkdirAll(config.PostsDir, 0755); err != nil {
@@ -183,11 +224,12 @@ func ensureContentDirs() error {
 	}
 
 	// 从种子目录复制（若存在）
-	if _, err := os.Stat(config.SrcPostsDir); err != nil {
+	srcPosts := locateSrcPosts()
+	if srcPosts == "" {
 		return nil
 	}
-	log.Printf("内容目录为空，从种子目录初始化: %s -> %s", config.SrcPostsDir, config.PostsDir)
-	return copyTree(config.SrcPostsDir, config.PostsDir)
+	log.Printf("内容目录为空，从种子目录初始化: %s -> %s", srcPosts, config.PostsDir)
+	return copyTree(srcPosts, config.PostsDir)
 }
 
 // copyTree 递归复制目录树

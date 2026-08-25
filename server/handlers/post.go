@@ -178,7 +178,7 @@ func ListPosts(c *gin.Context) {
 
 // GetPost GET /api/posts/:slug
 func GetPost(c *gin.Context) {
-	slug := c.Param("slug")
+	slug := strings.Trim(c.Param("slug"), "/")
 	path, err := resolvePostFile(slug)
 	if err != nil {
 		utils.NotFound(c, "文章不存在")
@@ -194,10 +194,9 @@ func GetPost(c *gin.Context) {
 		utils.InternalError(c, "解析文章失败")
 		return
 	}
-	rel, _ := filepath.Rel(config.PostsDir, path)
 	utils.Success(c, PostDetail{
 		Post: Post{
-			Slug:         slugFromPath(rel),
+			Slug:         slug,
 			Title:        fm.Title,
 			Published:    fm.Published,
 			Updated:      fm.Updated,
@@ -206,7 +205,7 @@ func GetPost(c *gin.Context) {
 			Tags:         fm.Tags,
 			Category:     fm.Category,
 			Draft:        fm.Draft,
-			CommentCount: models.CountCommentsByTarget("post", slugFromPath(rel)),
+			CommentCount: models.CountCommentsByTarget("post", slug),
 		},
 		Body: body,
 	})

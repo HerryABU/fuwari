@@ -10,19 +10,17 @@ import (
 
 var (
 	tagRe      = regexp.MustCompile(`<[^>]*>`)
-	scriptRe   = regexp.MustCompile(`(?is)<(script|style|iframe|object|embed|form|link|meta)[^>]*>.*?</\1>`)
 	schemeRe   = regexp.MustCompile(`(?i)javascript\s*:|vbscript\s*:|data\s*:\s*text/html`)
 	ctrlCharRe = regexp.MustCompile(`[\x00-\x08\x0b\x0c\x0e-\x1f]`)
 )
 
 // SanitizeMarkdown 净化用户提交的 Markdown 内容：
-//  1. 剥除 script/style 等危险标签对；
-//  2. 剥除所有残留 HTML 标签；
-//  3. 中和 javascript:/data:text/html 等危险 scheme；
-//  4. 移除控制字符。
+//  1. 剥除所有 HTML 标签（含 script/iframe 等，成对标签在去掉尖括号后
+//     残留的标签体文本会被 Cherry Markdown 按纯文本渲染，不构成执行载体）；
+//  2. 中和 javascript:/data:text/html 等危险 scheme；
+//  3. 移除控制字符。
 func SanitizeMarkdown(content string) string {
 	s := ctrlCharRe.ReplaceAllString(content, "")
-	s = scriptRe.ReplaceAllString(s, "")
 	s = tagRe.ReplaceAllString(s, "")
 	s = schemeRe.ReplaceAllStringFunc(s, func(m string) string {
 		return strings.ReplaceAll(m, ":", "%3a")
