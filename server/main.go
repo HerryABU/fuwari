@@ -6,6 +6,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/fs"
@@ -325,22 +326,42 @@ func loadFrontendStyles(fsys fs.FS) {
 	}
 }
 
-// seedAdminUI 确保运行时 admin/ 目录含 ui.css 与 ui.js（首次从内嵌 admin-default 复制）。
-// 之后用户可直接编辑运行时文件，刷新页面即热加载，无需重新编译。
+// seedAdminUI 确保运行时 admin/ 目录含 ui.css 与 ui.js：
+//   - 缺失 → 从内嵌 admin-default 复制；
+//   - 存在但版本过旧（不含内嵌版本标记 fuwari-admin-ui:xxxx）→ 覆盖为内嵌新版。
+//
+// 版本同步防止「新版 admin.html（go:embed，随 exe 更新）+ 旧运行时 ui.js」错配导致白屏。
+// 用户对运行时文件的二次编辑会被覆盖，因此自定义请在 admin-default/ 内修改后重新构建。
 func seedAdminUI() {
 	for _, name := range []string{"ui.css", "ui.js"} {
-		target := filepath.Join(config.AdminDir, name)
-		if _, err := os.Stat(target); err == nil {
-			continue // 已存在（用户可能已自定义），保留
-		}
 		data, err := fs.ReadFile(assetsFS, "assets/admin-default/"+name)
 		if err != nil {
 			continue
+		}
+		verMark := adminUIVersionMark(data) // 内嵌版本标记（无则视为无版本管理，仅缺失时复制）
+		target := filepath.Join(config.AdminDir, name)
+		if existing, err := os.ReadFile(target); err == nil {
+			// 已存在：若内嵌带版本标记且运行时缺失（旧版）→ 覆盖
+			if verMark != "" && !bytes.Contains(existing, []byte(verMark)) {
+				if werr := os.WriteFile(target, data, 0644); werr == nil {
+					log.Printf("后台 UI 已从内嵌版本更新: %s（版本 %s）", target, verMark)
+				}
+			}
+			continue // 新版/无版本管理：保留运行时文件
 		}
 		if werr := os.WriteFile(target, data, 0644); werr == nil {
 			log.Printf("已生成后台 UI 默认资源: %s（修改后刷新即生效）", target)
 		}
 	}
+}
+
+// adminUIVersionMark 从内嵌 ui 资源中提取版本标记（/* fuwari-admin-ui:YYYYMMDD */）
+func adminUIVersionMark(data []byte) string {
+	m := regexp.MustCompile(`fuwari-admin-ui:(\d{8})`).FindSubmatch(data)
+	if len(m) == 2 {
+		return string(m[1])
+	}
+	return ""
 }
 
 // serveAdminAsset 提供运行时 admin/<file>（热加载，no-cache）；缺失时内嵌 admin-default 兜底。

@@ -106,8 +106,12 @@
             '<div class="markdown-content prose dark:prose-invert prose-base !max-w-none custom-md px-6 md:px-8 py-6"></div>' +
           '</div>';
 
-        wrap.innerHTML = '';
-        wrap.appendChild(art);
+        // 替换正文区但保留 footer（避免运行时文章页丢失版权标识）
+        var footer = wrap.querySelector('.footer, footer');
+        Array.prototype.forEach.call(wrap.children, function (el) {
+          if (el !== footer) el.remove();
+        });
+        if (footer) wrap.insertBefore(art, footer); else wrap.appendChild(art);
 
         renderMarkdown(p.body || '', function (html) {
           var body = art.querySelector('.markdown-content');
@@ -133,6 +137,17 @@
         if (mm) seen[decodeURIComponent(mm[1])] = true;
       });
       var wrap = document.getElementById('content-wrapper') || document.body;
+      // 文章列表容器：第一个包含 ≥2 个文章链接的祖先容器（内部追加 = footer 之前，避免跑到版权下方）
+      var listEl = null;
+      var firstLink = document.querySelector('a[href*="/posts/"]');
+      if (firstLink) {
+        var anc = firstLink;
+        while (anc && anc !== wrap && anc !== document.body && anc !== document.documentElement) {
+          if (anc.querySelectorAll('a[href*="/posts/"]').length >= 2) { listEl = anc; break; }
+          anc = anc.parentElement;
+        }
+      }
+      var target = listEl || wrap;
       var added = 0;
       list.forEach(function (p) {
         if (p.draft || seen[p.slug]) return;
@@ -142,7 +157,7 @@
           '<a href="' + fwBase + 'posts/' + encodeURIComponent(p.slug) + '/" class="transition font-bold text-2xl hover:text-[var(--primary)]">' + escapeHtml(p.title) + '</a>' +
           '<div class="mt-2 text-sm opacity-70">' + escapeHtml(p.published || '') + (p.category ? ' · ' + escapeHtml(p.category) : '') + '</div>' +
           (p.description ? '<p class="mt-3 opacity-80">' + escapeHtml(p.description) + '</p>' : '');
-        wrap.appendChild(card);
+        target.appendChild(card);
         added++;
       });
       if (added) console.log('[fuwari] 已追加 ' + added + ' 篇运行时文章到列表');

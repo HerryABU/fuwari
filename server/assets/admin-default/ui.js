@@ -1,3 +1,4 @@
+/* fuwari-admin-ui:20260826 */
 /* fuwari 管理后台 —— 完全复刻前台交互语言。
  * 依赖：前台构建样式（服务端注入）+ 主题变量 + Cherry Markdown。
  * 交互：与前台共享 localStorage（theme / hue），默认中文，移动端 float-panel 导航。

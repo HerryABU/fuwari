@@ -1,3 +1,4 @@
+/* fuwari-admin-ui:20260826 */
 /* fuwari 管理后台 UI —— 完全复刻前台视觉语言。
  * 依赖：前台构建样式（_astro/*.css，服务端注入）+ 主题变量（themes/<name>/theme.css）。
  * 布局：前台 Navbar（card-base 圆角条）+ MainGridLayout（17.5rem 左栏 + 主区）逐字对齐；
