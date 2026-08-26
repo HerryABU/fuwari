@@ -138,14 +138,22 @@
         var mm = a.getAttribute('href').match(postRe);
         if (mm) seen[decodeURIComponent(mm[1])] = true;
       });
-      // 文章列表容器：内容区内第一个包含 ≥2 篇文章链接的祖先（内部追加 = footer 之前）
+      // 文章列表容器定位（务必跳过单个卡片块——PostCard 本身可能含多个 /posts/ 链接）：
+      // 1) 优先：content-wrapper 的直接子元素中第一个含 ≥2 篇文章链接的（列表容器）
+      // 2) 兜底：第一个文章链接所在卡片块的父级向上找
       var listEl = null;
-      var firstLink = wrap.querySelector('a[href*="/posts/"]');
-      if (firstLink) {
-        var anc = firstLink;
-        while (anc && anc !== wrap && anc !== document.body && anc !== document.documentElement) {
-          if (anc.querySelectorAll('a[href*="/posts/"]').length >= 2) { listEl = anc; break; }
-          anc = anc.parentElement;
+      Array.prototype.forEach.call(wrap.children, function (child) {
+        if (!listEl && child.querySelectorAll('a[href*="/posts/"]').length >= 2) listEl = child;
+      });
+      if (!listEl) {
+        var firstLink = wrap.querySelector('a[href*="/posts/"]');
+        if (firstLink) {
+          var card = firstLink.closest('article, [class*="card-base"]');
+          var anc = (card && card !== wrap) ? card.parentElement : firstLink.parentElement;
+          while (anc && anc !== wrap && anc !== document.body && anc !== document.documentElement) {
+            if (anc.querySelectorAll('a[href*="/posts/"]').length >= 2) { listEl = anc; break; }
+            anc = anc.parentElement;
+          }
         }
       }
       var footer = wrap.querySelector('.footer, footer');
@@ -158,7 +166,7 @@
           '<a href="' + fwBase + 'posts/' + encodeURIComponent(p.slug) + '/" class="transition font-bold text-2xl hover:text-[var(--primary)]">' + escapeHtml(p.title) + '</a>' +
           '<div class="mt-2 text-sm opacity-70">' + escapeHtml(p.published || '') + (p.category ? ' · ' + escapeHtml(p.category) : '') + '</div>' +
           (p.description ? '<p class="mt-3 opacity-80">' + escapeHtml(p.description) + '</p>' : '');
-        // 插入顺序：列表容器内 > footer 之前（绝不落到版权下方）
+        // 插入顺序：列表容器内 > footer 之前（绝不落到版权下方或嵌入卡片块）
         if (listEl) listEl.appendChild(card);
         else if (footer) wrap.insertBefore(card, footer);
         else wrap.appendChild(card);
