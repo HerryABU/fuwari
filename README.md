@@ -138,6 +138,33 @@ Config lives in `.env` (auto-generated on first run): `SERVER_PORT`,
 `POSTS_DIR`, `DB_PATH`, `ADMIN_TOKEN`, `THEMES_DIR`, `EXTENSIONS_DIR`,
 `BIND_IPV4`, `ENABLE_IPV6`, etc.
 
+### 🔗 Reverse-Proxy Sub-path Mounting (any prefix, no hardcoding)
+
+The whole site — pages, **js/css assets**, API, comments, `/editor`, themes,
+extensions and pagefind search — works under **any** reverse-proxy sub-path
+such as `https://host:8088/{name}/`. The proxy must keep the prefix
+(no path rewriting); fuwari auto-detects it per request:
+
+- HTML absolute references (`/_astro/*.js|css`, `/assets/*`, `/themes/*`,
+  `/extensions/*`, `/pagefind/*`, favicon, nav links) are rewritten to
+  `/{name}/...` at serve time — nothing is hardcoded, no recompiling.
+- API calls from the comment widget and the `/editor` use
+  `window.FUWARI_BASE` (injected into `<head>`) to stay prefix-agnostic.
+- A mount-aware handler strips the prefix internally and re-routes
+  (`/{name}/api/...` → `/api/...`), so direct access keeps working unchanged.
+
+Example nginx (**keep the prefix** — do not use a trailing slash in
+`proxy_pass`, otherwise page js/css resolves outside `/{name}/` and 404s):
+
+```nginx
+location /name/ {
+    proxy_pass http://127.0.0.1:9000;   # no trailing slash: /name/ is preserved
+    proxy_set_header Host $host;
+}
+```
+
+No configuration needed on the fuwari side.
+
 ## 🎨 Theme System (hot-reload, no recompiling)
 
 The UI — frontend **and** the `/editor` backend — is fully themeable at

@@ -8,9 +8,14 @@
 (function () {
 	'use strict';
 
+	// 反代挂载前缀（服务端注入 window.FUWARI_BASE，如 "/name/"；无前缀回退 "/"）。
+	// 所有 API/资源路径一律经此拼接，严禁硬编码绝对路径。
+	var fwBase = window.FUWARI_BASE || '/';
+
 	// 从 URL 推导文章 slug：/posts/guide/ -> guide ；/posts/a/b/ -> a/b
+	// 兼容反代前缀（/name/posts/guide/）与普通路径。
 	function detectSlug() {
-		var m = window.location.pathname.match(/^\/posts\/(.+?)\/?$/);
+		var m = window.location.pathname.match(/\/posts\/(.+?)\/?$/);
 		return m ? decodeURIComponent(m[1]) : null;
 	}
 
@@ -28,11 +33,11 @@
 		}
 		var css = document.createElement('link');
 		css.rel = 'stylesheet';
-		css.href = '/assets/cherry/cherry-markdown.min.css';
+		css.href = fwBase + 'assets/cherry/cherry-markdown.min.css';
 		document.head.appendChild(css);
 
 		var s = document.createElement('script');
-		s.src = '/assets/cherry/cherry-markdown.core.js';
+		s.src = fwBase + 'assets/cherry/cherry-markdown.core.js';
 		s.onload = function () {
 			cherryReady = true;
 			cherryCtor = window.Cherry;
@@ -140,7 +145,7 @@
 	}
 
 	function fetchComments(cb) {
-		fetch('/api/comments?slug=' + encodeURIComponent(SLUG) + '&page=1&page_size=100')
+		fetch(fwBase + 'api/comments?slug=' + encodeURIComponent(SLUG) + '&page=1&page_size=100')
 			.then(function (r) { return r.json(); })
 			.then(function (json) {
 				cb(json && json.code === 0 ? json.data : null);
@@ -189,7 +194,7 @@
 	}
 
 	function submitComment(nickname, content, cb) {
-		fetch('/api/comments', {
+		fetch(fwBase + 'api/comments', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ slug: SLUG, nickname: nickname, content: content }),

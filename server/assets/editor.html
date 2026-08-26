@@ -69,7 +69,7 @@
 <script>
 (function () {
   'use strict';
-  var API = '/api';
+  var API = (window.FUWARI_BASE || '/') + 'api';
   var currentSlug = null;
   var cherry = null;
   var TOKEN_KEY = 'fuwari_admin_token';

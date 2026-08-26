@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"log"
@@ -106,6 +107,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("前端资源加载失败（dist 目录不存在，请先构建前端并同步到 server/dist）: %v", err)
 	}
+
+	// 初始化根级路径集合（反代前缀探测用）：后端段 + 嵌入前端根目录
+	InitKnownRoots(frontendFS)
 
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
@@ -221,7 +225,23 @@ func main() {
 	log.Printf("  编辑器入口: http://localhost:%s/editor", config.ServerPort)
 	log.Println("========================================")
 
-	if err := http.ListenAndServe(listenAddr, r); err != nil {
+	// 反代挂载前缀兼容：/{name}/api/... → /api/...（递归重路由，帽子对用户保留不可见）
+	// 无前缀的普通请求直接走 gin 路由，零开销。
+	siteHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if newPath, prefix, ok := stripMountPrefix(req.URL.Path); ok && newPath != req.URL.Path {
+			req2 := req.Clone(req.Context())
+			req2.URL.Path = newPath
+			req2.URL.RawPath = ""
+			if prefix != "" {
+				req2 = req2.WithContext(context.WithValue(req2.Context(), basePathKey{}, prefix))
+			}
+			r.ServeHTTP(w, req2)
+			return
+		}
+		r.ServeHTTP(w, req)
+	})
+
+	if err := http.ListenAndServe(listenAddr, siteHandler); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)
 	}
 }
@@ -408,9 +428,11 @@ var commentWidgetSnippet = `
 <script src="/assets/comments.js"></script>
 `
 
-// injectPageAssets 统一页面注入：评论挂件 + 主题（前后台一致）+ 扩展（看板娘等）。
-// 对所有 HTML 页面注入，保证 swup 无刷新导航后资产持续存在。
+// injectPageAssets 统一页面注入：评论挂件 + 主题（前后台一致）+ 扩展（看板娘等）
+// + FUWARI_BASE（反代前缀自适应），最后统一把根绝对路径改写为带前缀路径。
+// 对所有 HTML 页面注入，保证无刷新导航后资产持续存在。
 func injectPageAssets(html []byte, c *gin.Context) []byte {
+	basePath := detectBasePath(c)
 	themeName := handlers.CurrentThemeName(c)
 	themeCSS := handlers.ThemeHeadInjection(themeName)
 	themeJS := handlers.ThemeBodyInjection(themeName)
@@ -418,14 +440,32 @@ func injectPageAssets(html []byte, c *gin.Context) []byte {
 
 	s := string(html)
 
+	// FUWARI_BASE 全局：JS 内 API/资源路径动态拼接（反代前缀自适应，严禁硬编码）。
+	// 必须注入 <head>，确保先于 body 中所有立即执行的脚本（编辑器/挂件 IIFE）就绪。
+	// 注意：不能用 "window.FUWARI_BASE" 做防重复标记——editor.html 等脚本已引用该全局名。
+	baseScript := fmt.Sprintf(`<script id="fuwari-base">window.FUWARI_BASE=%q;</script>`, basePath)
+
 	// 主题 CSS 注入 <head>（data-fuwari-theme 标记防重复）
-	if themeCSS != "" && !strings.Contains(s, "data-fuwari-theme") {
+	var headInjection strings.Builder
+	headInjection.WriteString(baseScript)
+	if themeCSS != "" {
+		headInjection.WriteString("\n")
+		headInjection.WriteString(themeCSS)
+	}
+	if !strings.Contains(s, `id="fuwari-base"`) && headInjection.Len() > 0 {
 		if idx := strings.LastIndex(s, "</head>"); idx >= 0 {
-			s = s[:idx] + themeCSS + s[idx:]
+			s = s[:idx] + headInjection.String() + s[idx:]
+		} else if idx := strings.LastIndex(s, "<head"); idx >= 0 {
+			if bi := strings.Index(s[idx:], ">"); bi >= 0 {
+				s = s[:idx+bi+1] + headInjection.String() + s[idx+bi+1:]
+			}
+		} else {
+			// 无 head 结构（极端兜底）：插到最前，保证最先执行
+			s = headInjection.String() + s
 		}
 	}
 
-	// 主题 JS + 扩展注入 </body> 前
+	// 主题 JS + 扩展 + 评论挂件 注入 </body> 前
 	var bodyJS strings.Builder
 	if themeJS != "" {
 		bodyJS.WriteString(themeJS)
@@ -436,16 +476,13 @@ func injectPageAssets(html []byte, c *gin.Context) []byte {
 		}
 		bodyJS.WriteString(extInjection)
 	}
-
-	// 评论挂件（body 前）—— 已注入则跳过
+	// 评论挂件 —— 已注入则跳过
 	if !strings.Contains(s, "/assets/comments.js") {
-		if idx := strings.LastIndex(s, "</body>"); idx >= 0 {
-			s = s[:idx] + commentWidgetSnippet + s[idx:]
-		} else {
-			s += commentWidgetSnippet
+		if bodyJS.Len() > 0 {
+			bodyJS.WriteString("\n")
 		}
+		bodyJS.WriteString(commentWidgetSnippet)
 	}
-
 	if bodyJS.Len() > 0 {
 		if idx := strings.LastIndex(s, "</body>"); idx >= 0 {
 			s = s[:idx] + bodyJS.String() + s[idx:]
@@ -453,7 +490,9 @@ func injectPageAssets(html []byte, c *gin.Context) []byte {
 			s += bodyJS.String()
 		}
 	}
-	return []byte(s)
+
+	// 最后统一改写根绝对路径（页面原有引用 + 本次注入标签 + 内联脚本）
+	return RewriteHTML([]byte(s), basePath)
 }
 
 // assetContentType 按扩展名返回 MIME 类型
