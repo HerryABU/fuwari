@@ -532,7 +532,9 @@ func serveEmbeddedAsset(c *gin.Context, sub, root string) {
 		c.Status(http.StatusNotFound)
 		return
 	}
-	c.Header("Cache-Control", "public, max-age=86400")
+	// 运行时可编辑的前端资产（comments.js/post-viewer.js/cherry 等）不缓存：
+	// 服务端注入已带 ?v= 版本号强制刷新，no-cache 双保险（_astro 哈希产物不受影响）
+	c.Header("Cache-Control", "no-cache")
 	c.Data(http.StatusOK, assetContentType(full), data)
 }
 
@@ -558,11 +560,13 @@ func resolveFrontendFile(fsys fs.FS, cleanPath string) (string, bool) {
 	return "", false
 }
 
-// commentWidgetSnippet 评论挂件 + 动态文章查看器（服务端注入，不改前端源码）
+// commentWidgetSnippet 评论挂件 + 动态文章查看器（服务端注入，不改前端源码）。
+// 资源带 ?v= 版本号强制刷新：serveEmbeddedAsset 已改 no-cache，双保险避免浏览器
+// 缓存旧版脚本导致行为不一致（如新文章插入位置、登录逻辑）。
 var commentWidgetSnippet = `
-<link rel="stylesheet" href="/assets/comments.css">
-<script src="/assets/comments.js"></script>
-<script src="/assets/post-viewer.js"></script>
+<link rel="stylesheet" href="/assets/comments.css?v=20260826">
+<script src="/assets/comments.js?v=20260826"></script>
+<script src="/assets/post-viewer.js?v=20260826"></script>
 `
 
 // injectPageAssets 统一页面注入：评论挂件 + 主题（前后台一致）+ 扩展（看板娘等）
