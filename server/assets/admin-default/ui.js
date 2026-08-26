@@ -47,7 +47,12 @@
       opsTitle: '⚙️ 操作', infoTitle: '📄 文章信息', filterTitle: '🔍 过滤',
       themeTipTitle: '💡 说明', themeTip: '点击卡片即可切换主题；主题文件位于 themes/ 目录，修改后刷新即生效。',
       pwdTipTitle: '🔐 忘记密码？', pwdTip: '停止服务后运行 fuwari-server -re pwd 命令行重置。',
-      aboutTitle: '🍥 Fuwari', aboutTip: 'Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。'
+      aboutTitle: '🍥 Fuwari', aboutTip: 'Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。',
+      tabHome: '🏠 面板', sysVersion: '版本', sysUptime: '运行', sysDatabase: '数据库', sysPort: '端口', welcomeTitle: '👋 欢迎回来', welcomeTip: '这里是 Fuwari 管理面板。左侧是站点的实时概览，右侧可以快速开始写文章、管理评论或调整主题。',
+      statPosts: '文章', statDrafts: '草稿', statComments: '评论', statThemes: '主题',
+      recentTitle: '🕒 最近文章', quickTitle: '⚡ 快捷操作', sysTitle: 'ℹ️ 系统状态',
+      quickNew: '✍️ 写新文章', quickComments: '💬 评论管理', quickThemes: '🎨 主题设置', quickPwd: '🔑 修改密码',
+      draftTag: '草稿', emptyRecent: '暂无文章'
     },
     en: {
       tabPosts: '📝 Posts', tabComments: '💬 Comments', tabThemes: '🎨 Themes', tabPassword: '🔑 Password', tabSystem: 'ℹ️ System',
@@ -61,7 +66,12 @@
       opsTitle: '⚙️ Actions', infoTitle: '📄 Post Info', filterTitle: '🔍 Filter',
       themeTipTitle: '💡 Tips', themeTip: 'Click a card to switch theme; theme files live in themes/, edit and refresh.',
       pwdTipTitle: '🔐 Forgot it?', pwdTip: 'Stop the service and run fuwari-server -re pwd to reset from the command line.',
-      aboutTitle: '🍥 Fuwari', aboutTip: 'A Go-backend blog system with an embedded Astro frontend. The admin UI shares the exact same styles and theme variables as the frontend.'
+      aboutTitle: '🍥 Fuwari', aboutTip: 'A Go-backend blog system with an embedded Astro frontend. The admin UI shares the exact same styles and theme variables as the frontend.',
+      tabHome: '🏠 Home', sysVersion: 'Version', sysUptime: 'Uptime', sysDatabase: 'Database', sysPort: 'Port', welcomeTitle: '👋 Welcome back', welcomeTip: 'This is the Fuwari admin panel. The left column shows live site stats; use the right column to start writing, manage comments or tweak themes.',
+      statPosts: 'Posts', statDrafts: 'Drafts', statComments: 'Comments', statThemes: 'Themes',
+      recentTitle: '🕒 Recent Posts', quickTitle: '⚡ Quick Actions', sysTitle: 'ℹ️ System Status',
+      quickNew: '✍️ New Post', quickComments: '💬 Comments', quickThemes: '🎨 Themes', quickPwd: '🔑 Password',
+      draftTag: 'Draft', emptyRecent: 'No posts yet'
     }
   };
   var lang = localStorage.getItem('fuwari_lang') || ((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en');
@@ -102,14 +112,75 @@
   }
 
   // ---------- Tabs ----------
-  function switchTab(name) {
-    document.querySelectorAll('#tabs button').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === name); });
+  // ---------- 视图解析（真实子页面 URL：/admin → home，/admin/posts → posts ...） ----------
+  function resolveView() {
+    var p = window.location.pathname.replace(/\/+$/, '');
+    var m = p.match(/\/(posts|comments|themes|password|system)$/);
+    if (m) return m[1];
+    return 'home';
+  }
+
+  function activateView(name) {
+    document.querySelectorAll('#tabs a').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === name); });
     document.querySelectorAll('.fw-view').forEach(function (v) { v.classList.remove('active'); });
-    el('view-' + name).classList.add('active');
-    if (name === 'posts' && !cherryInit && window.Cherry) initCherry();
+    var view = el('view-' + name);
+    if (view) view.classList.add('active');
+    if (name === 'posts') {
+      if (!cherryInit && window.Cherry) initCherry();
+      var qs = new URLSearchParams(location.search);
+      if (qs.get('new') === '1') newPost();
+      else if (qs.get('slug')) openPost(qs.get('slug'));
+      else loadList();
+    }
     if (name === 'comments') loadComments();
     if (name === 'themes') loadThemeGrid();
     if (name === 'system') loadSystemInfo();
+    if (name === 'home') loadDashboard();
+  }
+
+  // ---------- 面板首页（dashboard） ----------
+  function loadDashboard() {
+    fetch(API + '/posts?include_draft=1').then(function (r) { return r.json(); }).then(function (j) {
+      if (j.code !== 0) return;
+      var list = j.data.list || [];
+      var posts = list.filter(function (p) { return !p.draft; }).length;
+      el('stat-posts').textContent = posts;
+      el('stat-drafts').textContent = list.length - posts;
+      var box = el('recent-posts');
+      box.innerHTML = '';
+      if (!list.length) { box.innerHTML = '<div class="empty-tip py-4">' + T('emptyRecent') + '</div>'; return; }
+      list.slice(0, 5).forEach(function (p) {
+        var a = document.createElement('a');
+        a.href = (window.FUWARI_BASE || '/') + 'admin/posts?slug=' + encodeURIComponent(p.slug);
+        a.className = 'block px-3 py-2 rounded-lg hover:bg-[var(--btn-plain-bg-hover)] transition flex items-center gap-2 text-sm';
+        a.innerHTML = '<span class="font-medium truncate">' + escapeHtml(p.title) + '</span>' +
+          '<span class="ml-auto text-xs shrink-0 ' + (p.draft ? 'text-[var(--fw-err)]' : 'text-[var(--meta-divider)]') + '">' +
+          (p.draft ? T('draftTag') : escapeHtml(p.published || '')) + '</span>';
+        box.appendChild(a);
+      });
+    }).catch(function () {});
+    fetch(API + '/comments?page=1&page_size=1').then(function (r) { return r.json(); }).then(function (j) {
+      if (j.code === 0) el('stat-comments').textContent = j.data.total || 0;
+    }).catch(function () {});
+    fetch(API + '/themes').then(function (r) { return r.json(); }).then(function (j) {
+      if (j.code === 0) el('stat-themes').textContent = (j.data.list || []).length;
+    }).catch(function () {});
+    fetch(API + '/health').then(function (r) { return r.json(); }).then(function (j) {
+      var d = j.data || {};
+      var box = el('sys-mini');
+      box.innerHTML = '';
+      [
+        [T('sysVersion'), d.version || ''],
+        [T('sysUptime'), d.uptime ? (d.uptime + 's') : ''],
+        [T('sysDatabase'), d.database || ''],
+        [T('sysPort'), d.port || ''],
+      ].forEach(function (r2) {
+        var row = document.createElement('div');
+        row.className = 'flex justify-between gap-3';
+        row.innerHTML = '<span class="text-[var(--meta-divider)]">' + escapeHtml(r2[0]) + '</span><span>' + escapeHtml(String(r2[1])) + '</span>';
+        box.appendChild(row);
+      });
+    }).catch(function () {});
   }
 
   // ---------- 主题切换 ----------
@@ -387,7 +458,7 @@
       lang = e.target.value;
       localStorage.setItem('fuwari_lang', lang);
       applyI18n();
-      switchTab(document.querySelector('#tabs button.active').dataset.tab);
+      activateView(document.querySelector('#tabs a.active') ? document.querySelector('#tabs a.active').dataset.tab : 'home');
     });
     el('scheme-switch').addEventListener('click', toggleTheme);
     applyHue();
@@ -398,10 +469,8 @@
     loadThemes();
     loadList();
     setStatus(T('ready'));
-    // 默认进入文章页签；URL ?tab=xxx 可直达
-    var want = new URLSearchParams(location.search).get('tab');
-    if (want && document.querySelector('#tabs button[data-tab="' + want + '"]')) switchTab(want);
-    else if (window.Cherry) initCherry();
+    // 按当前子页面 URL 激活视图（/admin → 面板，/admin/posts → 文章 ...）
+    activateView(resolveView());
   }
 
   if (document.readyState === 'loading') {

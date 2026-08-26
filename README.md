@@ -188,15 +188,19 @@ Edit and refresh — no recompiling. See `extensions/README.md` for details.
 ## ✍️ Admin Console (/admin)
 
 The unified management console (no frontend changes), fully themed like the
-frontend and i18n (中文/English):
+frontend and i18n (中文/English). It follows the classic **dashboard +
+sub-page** model (like WordPress admin):
 
-- **📝 Posts** — list/create/save/delete posts against the file-system store;
-  full Cherry Markdown editor (`edit&preview`) with **image upload**
-  (`POST /api/admin/upload` → stored under `content/posts/uploads/`)
-- **💬 Comments** — view all comments (or filter by slug), delete
-- **🎨 Themes** — theme cards + instant switching
-- **🔑 Password** — change the admin password
-- **ℹ️ System** — version / host / uptime / paths / themes / extensions
+- **** — dashboard panel: live stats (posts / drafts / comments /
+  themes), recent posts, system status and quick actions
+- **** — posts editor: list/create/save/delete against the
+  file-system store; full Cherry Markdown editor (`edit&preview`) with
+  **image upload** (`POST /api/admin/upload` → `content/posts/uploads/`);
+  `?new=1` starts a new post, `?slug=x` opens one
+- **** — view all comments (or filter by slug), delete
+- **** — theme cards + instant switching
+- **** — change the admin password
+- **** — version / host / uptime / paths / themes / extensions
 
 Access: <http://localhost:9000/admin> — enter the admin password (kept in
 `localStorage` between sessions). `/editor` remains as a compatible alias.

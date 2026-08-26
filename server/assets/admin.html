@@ -9,16 +9,18 @@
 <link rel="stylesheet" href="/admin/ui.css">
 </head>
 <body class="min-h-screen">
-<!-- 顶部导航：与前台 header 完全同款（居中容器 + btn-regular 链接 + 控件组） -->
+<!-- 顶部导航：与前台 header 完全同款（居中容器 + btn-regular 链接 + 控件组）。
+     每个入口是真实子页面（/admin、/admin/posts ...），可直达/刷新/分享。 -->
 <header class="sticky top-0 z-40 backdrop-blur-md bg-[color-mix(in_srgb,var(--card-bg)_82%,transparent)] border-b border-[var(--line-color)]">
   <div class="max-w-[var(--page-width)] mx-auto px-4 py-2.5 flex items-center gap-2 flex-wrap">
-    <span class="brand font-bold relative pl-5 before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2">✍️ Fuwari Admin</span>
+    <a href="/admin" class="brand font-bold relative pl-5 before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2">✍️ Fuwari Admin</a>
     <nav id="tabs" class="flex gap-1.5 flex-wrap items-center">
-      <button data-tab="posts" class="fw-tab active" data-i18n="tabPosts">📝 文章</button>
-      <button data-tab="comments" class="fw-tab" data-i18n="tabComments">💬 评论</button>
-      <button data-tab="themes" class="fw-tab" data-i18n="tabThemes">🎨 主题</button>
-      <button data-tab="password" class="fw-tab" data-i18n="tabPassword">🔑 密码</button>
-      <button data-tab="system" class="fw-tab" data-i18n="tabSystem">ℹ️ 系统</button>
+      <a href="/admin" class="fw-tab" data-tab="home" data-i18n="tabHome">🏠 面板</a>
+      <a href="/admin/posts" class="fw-tab" data-tab="posts" data-i18n="tabPosts">📝 文章</a>
+      <a href="/admin/comments" class="fw-tab" data-tab="comments" data-i18n="tabComments">💬 评论</a>
+      <a href="/admin/themes" class="fw-tab" data-tab="themes" data-i18n="tabThemes">🎨 主题</a>
+      <a href="/admin/password" class="fw-tab" data-tab="password" data-i18n="tabPassword">🔑 密码</a>
+      <a href="/admin/system" class="fw-tab" data-tab="system" data-i18n="tabSystem">ℹ️ 系统</a>
     </nav>
     <div class="flex items-center gap-2 ml-auto flex-wrap">
       <input id="token" type="password" placeholder="管理员密码" autocomplete="off" class="fw-input !w-44">
@@ -35,8 +37,45 @@
 
 <main class="max-w-[var(--page-width)] mx-auto px-0 md:px-4 py-5">
 
-<!-- ========== 文章 ========== -->
-<div class="fw-view active" id="view-posts">
+<!-- ========== 面板首页（dashboard） ========== -->
+<div class="fw-view" id="view-home">
+  <div class="fw-grid">
+    <section class="space-y-4 min-w-0">
+      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-6 onload-animation">
+        <h3 class="fw-card-title" data-i18n="welcomeTitle">👋 欢迎回来</h3>
+        <p class="text-sm opacity-80 mt-3" data-i18n="welcomeTip">这里是 Fuwari 管理面板。左侧是站点的实时概览，右侧可以快速开始写文章、管理评论或调整主题。</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5" id="stat-grid">
+          <div class="stat-card"><div class="num" id="stat-posts">–</div><div class="lbl" data-i18n="statPosts">文章</div></div>
+          <div class="stat-card"><div class="num" id="stat-drafts">–</div><div class="lbl" data-i18n="statDrafts">草稿</div></div>
+          <div class="stat-card"><div class="num" id="stat-comments">–</div><div class="lbl" data-i18n="statComments">评论</div></div>
+          <div class="stat-card"><div class="num" id="stat-themes">–</div><div class="lbl" data-i18n="statThemes">主题</div></div>
+        </div>
+      </div>
+      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-6 onload-animation" style="animation-delay: 80ms">
+        <h3 class="fw-card-title" data-i18n="recentTitle">🕒 最近文章</h3>
+        <div id="recent-posts" class="mt-3 space-y-1"></div>
+      </div>
+    </section>
+    <aside class="space-y-4">
+      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 40ms">
+        <h3 class="fw-card-title" data-i18n="quickTitle">⚡ 快捷操作</h3>
+        <div class="flex flex-col gap-2.5 mt-3">
+          <a href="/admin/posts?new=1" class="fw-btn fw-btn-primary w-full justify-center" data-i18n="quickNew">✍️ 写新文章</a>
+          <a href="/admin/comments" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="quickComments">💬 评论管理</a>
+          <a href="/admin/themes" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="quickThemes">🎨 主题设置</a>
+          <a href="/admin/password" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="quickPwd">🔑 修改密码</a>
+        </div>
+      </div>
+      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 120ms">
+        <h3 class="fw-card-title" data-i18n="sysTitle">ℹ️ 系统状态</h3>
+        <div id="sys-mini" class="mt-3 text-sm space-y-2"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ========== 子页面：文章 ========== -->
+<div class="fw-view" id="view-posts">
   <div class="fw-grid">
     <section class="space-y-4 min-w-0">
       <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-3 onload-animation">
@@ -50,7 +89,7 @@
       <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 40ms">
         <h3 class="fw-card-title" data-i18n="opsTitle">⚙️ 操作</h3>
         <div class="flex flex-col gap-2.5 mt-3">
-          <button id="btn-new" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="btnNew">＋ 新建</button>
+          <a id="btn-new" href="/admin/posts?new=1" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="btnNew">＋ 新建</a>
           <button id="btn-save" class="fw-btn fw-btn-primary w-full justify-center" data-i18n="btnSave">保存</button>
           <button id="btn-delete" class="fw-btn fw-btn-danger w-full justify-center" data-i18n="btnDelete">删除</button>
         </div>
@@ -69,7 +108,7 @@
   </div>
 </div>
 
-<!-- ========== 评论 ========== -->
+<!-- ========== 子页面：评论 ========== -->
 <div class="fw-view" id="view-comments">
   <div class="fw-grid">
     <section class="space-y-4 min-w-0">
@@ -90,7 +129,7 @@
   </div>
 </div>
 
-<!-- ========== 主题 ========== -->
+<!-- ========== 子页面：主题 ========== -->
 <div class="fw-view" id="view-themes">
   <div class="fw-grid">
     <section class="space-y-4 min-w-0">
@@ -108,7 +147,7 @@
   </div>
 </div>
 
-<!-- ========== 密码 ========== -->
+<!-- ========== 子页面：密码 ========== -->
 <div class="fw-view" id="view-password">
   <div class="fw-grid">
     <section class="space-y-4 min-w-0">
@@ -132,7 +171,7 @@
   </div>
 </div>
 
-<!-- ========== 系统 ========== -->
+<!-- ========== 子页面：系统 ========== -->
 <div class="fw-view" id="view-system">
   <div class="fw-grid">
     <section class="space-y-4 min-w-0">
