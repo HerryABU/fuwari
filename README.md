@@ -201,8 +201,10 @@ frontend and i18n (中文/English):
 Access: <http://localhost:9000/admin> — enter the admin password (kept in
 `localStorage` between sessions). `/editor` remains as a compatible alias.
 
-**UI is dynamically injected & hot-reloadable**: the console's styles and
-logic live in the runtime `admin/ui.css` + `admin/ui.js` (seeded from the
+**Layout mirrors the frontend architecture** (centered `--page-width`
+container, two-column grid, card-base panels) and **UI is dynamically
+injected & hot-reloadable**: the console's styles and logic live in the
+runtime `admin/ui.css` + `admin/ui.js` (seeded from the
 embedded defaults on first boot; `ADMIN_DIR`). Edit them and refresh — no
 recompiling, no restart — just like themes and extensions.
 
@@ -221,7 +223,8 @@ without touching frontend sources:
 
 ## 🌍 i18n (Admin & Comment Widget)
 
-The admin console and the comment widget ship with Chinese and English.
+The site defaults to Chinese (config lang `zh_CN`) on first deploy. The
+admin console and the comment widget ship with Chinese and English.
 Language is picked from, in order: `localStorage.fuwari_lang`, URL
 `?lang=en|zh`, then the browser language. The admin header has a language
 switcher that persists the choice. Post `lang` frontmatter is also exposed

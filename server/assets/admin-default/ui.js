@@ -43,7 +43,11 @@
       emptyPosts: '暂无文章，点击「＋ 新建」开始', emptyComments: '暂无评论', emptyThemes: '暂无主题', loadFail: '加载失败', saved: '已保存', deleted: '已删除',
       newMode: '新文章模式（保存后自动生成 slug）', needTitle: '请填写标题', needToken: '请先填写管理员密码', noSelection: '未选择文章',
       pwdEnter: '请输入当前密码', pwdShort: '新密码至少 6 个字符', pwdMismatch: '两次输入的新密码不一致', pwdOk: '✅ 密码已修改，请使用新密码', pwdFail: '修改失败', networkErr: '网络错误，请重试',
-      uploadFail: '上传失败', ready: '就绪', systemTitle: '系统信息', themeSwitch: '切换主题', themeActive: '当前', langLabel: '语言'
+      uploadFail: '上传失败', ready: '就绪', systemTitle: '系统信息', themeSwitch: '切换主题', themeActive: '当前', langLabel: '语言',
+      opsTitle: '⚙️ 操作', infoTitle: '📄 文章信息', filterTitle: '🔍 过滤',
+      themeTipTitle: '💡 说明', themeTip: '点击卡片即可切换主题；主题文件位于 themes/ 目录，修改后刷新即生效。',
+      pwdTipTitle: '🔐 忘记密码？', pwdTip: '停止服务后运行 fuwari-server -re pwd 命令行重置。',
+      aboutTitle: '🍥 Fuwari', aboutTip: 'Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。'
     },
     en: {
       tabPosts: '📝 Posts', tabComments: '💬 Comments', tabThemes: '🎨 Themes', tabPassword: '🔑 Password', tabSystem: 'ℹ️ System',
@@ -53,7 +57,11 @@
       emptyPosts: 'No posts yet — click "＋ New"', emptyComments: 'No comments', emptyThemes: 'No themes', loadFail: 'Load failed', saved: 'Saved', deleted: 'Deleted',
       newMode: 'New post mode (slug auto-generated on save)', needTitle: 'Please fill in the title', needToken: 'Please enter the admin password first', noSelection: 'No post selected',
       pwdEnter: 'Enter the current password', pwdShort: 'New password must be at least 6 characters', pwdMismatch: 'The two passwords do not match', pwdOk: '✅ Password updated, use the new one', pwdFail: 'Change failed', networkErr: 'Network error, please retry',
-      uploadFail: 'Upload failed', ready: 'Ready', systemTitle: 'System Info', themeSwitch: 'Switch theme', themeActive: 'Active', langLabel: 'Language'
+      uploadFail: 'Upload failed', ready: 'Ready', systemTitle: 'System Info', themeSwitch: 'Switch theme', themeActive: 'Active', langLabel: 'Language',
+      opsTitle: '⚙️ Actions', infoTitle: '📄 Post Info', filterTitle: '🔍 Filter',
+      themeTipTitle: '💡 Tips', themeTip: 'Click a card to switch theme; theme files live in themes/, edit and refresh.',
+      pwdTipTitle: '🔐 Forgot it?', pwdTip: 'Stop the service and run fuwari-server -re pwd to reset from the command line.',
+      aboutTitle: '🍥 Fuwari', aboutTip: 'A Go-backend blog system with an embedded Astro frontend. The admin UI shares the exact same styles and theme variables as the frontend.'
     }
   };
   var lang = localStorage.getItem('fuwari_lang') || ((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en');
@@ -96,8 +104,8 @@
   // ---------- Tabs ----------
   function switchTab(name) {
     document.querySelectorAll('#tabs button').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === name); });
-    document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
-    el('panel-' + name).classList.add('active');
+    document.querySelectorAll('.fw-view').forEach(function (v) { v.classList.remove('active'); });
+    el('view-' + name).classList.add('active');
     if (name === 'posts' && !cherryInit && window.Cherry) initCherry();
     if (name === 'comments') loadComments();
     if (name === 'themes') loadThemeGrid();

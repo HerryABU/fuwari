@@ -1,6 +1,7 @@
-/* fuwari 管理后台 UI —— 与前台完全一致的设计语言。
+/* fuwari 管理后台 UI —— 完全复刻前台布局架构。
  * 依赖：前台构建样式（_astro/*.css，服务端注入）+ 主题变量（themes/<name>/theme.css）。
- * 本文件只定义后台特有结构（输入框/按钮/页签/列表）与语义色，全部走 CSS 变量。
+ * 布局：header 居中导航 + max-w-[var(--page-width)] 容器 + 左右双栏 grid + card-base 卡片堆叠。
+ * 本文件仅定义后台特有结构（双栏/视图/输入/按钮/卡片标题），其余样式全部来自前台。
  * 热加载：直接编辑本文件，刷新页面即生效。
  */
 :root {
@@ -8,7 +9,45 @@
   --fw-ok: #22c55e;
 }
 
-/* ---------- 输入控件（前台无表单，后台自定，跟随主题变量） ---------- */
+/* 页面背景与前台一致（前台 body 背景由 page 容器承载，后台直接设置） */
+body {
+  background: var(--page-bg, #f5f6f8);
+  color: var(--deep-text, #1f2328);
+  transition: background .3s, color .3s;
+}
+
+/* ---------- 布局（照搬前台「主栏 + sidebar」架构） ---------- */
+.fw-view { display: none; }
+.fw-view.active { display: block; }
+.fw-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 1024px) {
+  .fw-grid { grid-template-columns: minmax(0, 1fr); }
+  .fw-grid aside { order: -1; }
+}
+.fw-card-title {
+  font-weight: 700;
+  font-size: 1.02rem;
+  position: relative;
+  padding-left: 1.1rem;
+}
+.fw-card-title::before {
+  content: '';
+  width: 4px;
+  height: 1.1rem;
+  border-radius: 2px;
+  background: var(--primary, #3b82f6);
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ---------- 输入控件（跟随主题变量） ---------- */
 .fw-input {
   padding: 0.45rem 0.75rem;
   border-radius: var(--radius-lg, 0.6rem);
@@ -40,10 +79,7 @@
   white-space: nowrap;
 }
 .fw-btn:disabled { opacity: .55; cursor: not-allowed; }
-.fw-btn-primary {
-  background: var(--primary, #3b82f6);
-  color: #fff;
-}
+.fw-btn-primary { background: var(--primary, #3b82f6); color: #fff; }
 .fw-btn-primary:hover { filter: brightness(1.08); }
 .fw-btn-danger {
   background: color-mix(in srgb, var(--fw-err, #ef4444) 12%, var(--card-bg, #fff));
@@ -56,14 +92,11 @@
   color: var(--deep-text, #333);
   border-color: var(--line-color, #d1d5db);
 }
-.fw-btn-ghost:hover {
-  color: var(--primary, #3b82f6);
-  border-color: var(--primary, #3b82f6);
-}
+.fw-btn-ghost:hover { color: var(--primary, #3b82f6); border-color: var(--primary, #3b82f6); }
 
-/* ---------- 页签（前台 hover 微移风格） ---------- */
+/* ---------- 页签（前台 btn-regular 导航风格） ---------- */
 .fw-tab {
-  padding: 0.45rem 1.05rem;
+  padding: 0.4rem 0.9rem;
   border-radius: var(--radius-lg, 0.6rem);
   border: 1px solid transparent;
   background: transparent;
@@ -94,15 +127,12 @@
   transition: all .2s;
 }
 .post-item:hover { background: var(--btn-plain-bg-hover, #f1f5f9); }
-.post-item.active {
-  background: var(--selection-bg, #e0e7ff);
-  border-left-color: var(--primary, #3b82f6);
-}
+.post-item.active { background: var(--selection-bg, #e0e7ff); border-left-color: var(--primary, #3b82f6); }
 .post-item .t { font-weight: 600; font-size: 0.85rem; color: var(--deep-text, #1f2328); }
 .post-item .s { font-size: 0.7rem; color: var(--meta-divider, #6b7280); margin-top: 2px; word-break: break-all; }
-.empty { color: var(--meta-divider, #9ca3af); font-size: 0.85rem; text-align: center; padding: 2.5rem 0; }
+.empty { color: var(--meta-divider, #9ca3af); font-size: 0.85rem; text-align: center; padding: 2rem 0; }
 
-/* ---------- 评论/主题/系统 列表卡片（card-base 语言） ---------- */
+/* ---------- 列表卡片（card-base 语言） ---------- */
 .list-item {
   background: var(--card-bg, #fff);
   border: 1px solid var(--line-color, rgba(0,0,0,.08));
@@ -116,15 +146,7 @@
 .list-item .tm { font-size: 0.75rem; color: var(--meta-divider, #6b7280); margin-left: auto; }
 .list-item .ct { margin-top: 0.4rem; font-size: 0.9rem; word-break: break-word; color: var(--deep-text, #1f2328); opacity: .92; }
 .list-item .act { margin-top: 0.6rem; }
-.btn-mini {
-  padding: 0.3rem 0.85rem;
-  border-radius: var(--radius-lg, 0.6rem);
-  border: none;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
-  transition: all .2s;
-}
+.btn-mini { padding: 0.3rem 0.85rem; border-radius: var(--radius-lg, 0.6rem); border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all .2s; }
 .btn-primary { background: var(--primary, #3b82f6); color: #fff; }
 .btn-primary:hover { filter: brightness(1.08); }
 .btn-danger { background: transparent; color: var(--fw-err, #ef4444); border: 1px solid color-mix(in srgb, var(--fw-err, #ef4444) 35%, transparent); }
@@ -141,24 +163,13 @@
   cursor: pointer;
   transition: border-color .2s, transform .2s, box-shadow .2s;
 }
-.theme-card:hover {
-  border-color: var(--primary, #3b82f6);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.08);
-}
+.theme-card:hover { border-color: var(--primary, #3b82f6); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
 .theme-card.active { border-color: var(--primary, #3b82f6); }
 .theme-card .nm { font-weight: 700; color: var(--deep-text, #1f2328); }
 .theme-card .ds { font-size: 0.8rem; color: var(--meta-divider, #6b7280); margin-top: 0.3rem; }
 
 /* ---------- 系统信息 ---------- */
-.sys-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px dashed var(--line-color, rgba(0,0,0,.08));
-  font-size: 0.9rem;
-}
+.sys-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px dashed var(--line-color, rgba(0,0,0,.08)); font-size: 0.9rem; }
 .sys-row:last-child { border-bottom: none; }
 .sys-row span:first-child { color: var(--meta-divider, #6b7280); }
 
@@ -167,14 +178,13 @@
 #pwd-msg.ok { color: var(--fw-ok, #22c55e); }
 
 /* ---------- Cherry 编辑器跟随主题（与前台一致） ---------- */
-#editor .cherry { height: 100%; }
-#editor .cherry .cherry-editor,
-#editor .cherry .cherry-previewer { height: 100%; }
-#editor .cherry {
+.fw-editor { min-height: 70vh; }
+.fw-editor .cherry { height: 70vh; }
+.fw-editor .cherry .cherry-editor, .fw-editor .cherry .cherry-previewer { height: 100%; }
+.fw-editor .cherry {
   --fill-color: var(--card-bg);
   --text-color: var(--deep-text);
   --border-color: var(--line-color);
   --primary-color: var(--primary);
 }
-#editor .cherry .cherry-editor,
-#editor .cherry .cherry-previewer { background: var(--card-bg); color: var(--deep-text); }
+.fw-editor .cherry .cherry-editor, .fw-editor .cherry .cherry-previewer { background: var(--card-bg); color: var(--deep-text); }
