@@ -44,8 +44,30 @@
 		document.head.appendChild(s);
 	}
 
-	// 渲染单条评论 Markdown -> HTML（隐藏 Cherry 实例 makeHtml）
+	// 渲染队列：Cherry 渲染引擎共享，setValue 异步且互斥，必须串行渲染
+	var renderQueue = [];
+	var rendering = false;
+
 	function renderMarkdown(md, cb) {
+		renderQueue.push({ md: md, cb: cb });
+		if (!rendering) {
+			processRenderQueue();
+		}
+	}
+
+	function processRenderQueue() {
+		if (rendering || !renderQueue.length) { return; }
+		var job = renderQueue.shift();
+		rendering = true;
+		renderOne(job.md, function (html) {
+			rendering = false;
+			job.cb(html);
+			processRenderQueue();
+		});
+	}
+
+	// 渲染单条评论 Markdown -> HTML（Cherry setValue 后监听 afterChange 事件，可靠获取渲染结果）
+	function renderOne(md, cb) {
 		loadCherry(function () {
 			if (!cherryCtor) {
 				cb(escapeHtml(md));
@@ -54,7 +76,7 @@
 			if (!renderEngine) {
 				renderHolder = document.createElement('div');
 				renderHolder.id = 'fuwari-renderer-host';
-				renderHolder.style.display = 'none';
+				renderHolder.style.cssText = 'position:fixed;top:0;left:0;width:600px;height:100px;z-index:-1;visibility:hidden';
 				document.body.appendChild(renderHolder);
 				try {
 					renderEngine = new cherryCtor({
@@ -66,11 +88,36 @@
 					renderEngine = null;
 				}
 			}
-			try {
-				cb(renderEngine.makeHtml(md));
-			} catch (e) {
+			if (!renderEngine) {
 				cb(escapeHtml(md));
+				return;
 			}
+			var done = false;
+			var finalize = function () {
+				if (done) { return; }
+				try {
+					var html = renderEngine.getHtml(false);
+					// Cherry 初始化（value:''）也会触发一次 afterChange，此时结果为空串。
+					// 仅当拿到真实渲染结果时才完成，避免空结果被 done 锁定。
+					if (html && String(html).length > 0) {
+						done = true;
+						cb(String(html));
+					}
+				} catch (e) {
+					done = true;
+					cb(escapeHtml(md));
+				}
+			};
+			// 事件驱动：渲染完成即取结果；超时兜底
+			renderEngine.on('afterChange', finalize);
+			try {
+				renderEngine.setValue(md);
+			} catch (e) {
+				done = true;
+				cb(escapeHtml(md));
+				return;
+			}
+			setTimeout(finalize, 800);
 		});
 	}
 
