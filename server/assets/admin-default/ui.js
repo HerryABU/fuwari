@@ -1,6 +1,32 @@
 
 (function () {
   'use strict';
+
+  // ---------- 深浅色同步（与前台 localStorage 'theme' 完全一致，html.dark 驱动） ----------
+  function syncTheme() {
+    var t = localStorage.getItem('theme') || 'auto';
+    var dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
+    var btn = document.getElementById('scheme-switch');
+    if (btn) btn.textContent = dark ? '☀️' : '🌙';
+  }
+  function toggleTheme() {
+    var cur = document.documentElement.classList.contains('dark');
+    localStorage.setItem('theme', cur ? 'light' : 'dark');
+    syncTheme();
+  }
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncTheme);
+  }
+
+  // ---------- 站点主色 hue（与前台 configHue 一致：html style --configHue / localStorage hue） ----------
+  function applyHue() {
+    var cfg = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--configHue')) || 250;
+    var hue = localStorage.getItem('hue');
+    if (hue !== null && !isNaN(parseFloat(hue))) cfg = parseFloat(hue);
+    document.documentElement.style.setProperty('--hue', cfg);
+  }
+
   var API = (window.FUWARI_BASE || '/') + 'api';
   var currentSlug = null;
   var cherry = null;
@@ -355,6 +381,9 @@
       applyI18n();
       switchTab(document.querySelector('#tabs button.active').dataset.tab);
     });
+    el('scheme-switch').addEventListener('click', toggleTheme);
+    applyHue();
+    syncTheme();
     el('token').addEventListener('keydown', function (e) { if (e.key === 'Enter') savePost(); });
     var saved = localStorage.getItem(TOKEN_KEY);
     if (saved) el('token').value = saved;

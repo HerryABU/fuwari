@@ -4,92 +4,95 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fuwari Admin</title>
-<!-- Cherry Markdown 编辑器样式 -->
-<link rel="stylesheet" href="/assets/cherry/cherry-markdown.min.css">
-<!-- 后台 UI 样式：运行时 admin/ui.css 动态注入（热加载，无需重编译）；
-     主题变量由服务端注入的 themes/<name>/theme.css 覆盖，前后台完全一致 -->
+<!-- FRONTEND_STYLES -->
+<!-- 后台 UI 覆盖样式：运行时 admin/ui.css 动态注入（热加载） -->
 <link rel="stylesheet" href="/admin/ui.css">
 </head>
-<body>
-<header>
-  <span class="brand">✍️ Fuwari Admin</span>
-  <input id="token" type="password" placeholder="管理员密码（保存时必填）" autocomplete="off">
-  <select id="theme-switch"></select>
-  <select id="lang-switch">
+<body class="min-h-screen bg-[var(--page-bg)] text-[var(--deep-text)] transition-colors">
+<header class="sticky top-0 z-40 backdrop-blur-md bg-[color-mix(in_srgb,var(--card-bg)_82%,transparent)] border-b border-[var(--line-color)] px-4 py-2.5 flex items-center gap-2.5 flex-wrap">
+  <span class="brand font-bold text-lg relative pl-5 before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2">Fuwari Admin</span>
+  <input id="token" type="password" placeholder="管理员密码（保存时必填）" autocomplete="off" class="fw-input !w-52">
+  <select id="theme-switch" class="fw-input fw-select"></select>
+  <button id="scheme-switch" class="fw-btn fw-btn-ghost" title="切换深浅色">🌙</button>
+  <select id="lang-switch" class="fw-input fw-select">
     <option value="zh">中文</option>
     <option value="en">English</option>
   </select>
-  <span id="status"></span>
+  <span id="status" class="text-xs ml-auto whitespace-nowrap text-[var(--meta-divider)]"></span>
 </header>
-<nav class="tabs" id="tabs">
-  <button data-tab="posts" class="active" data-i18n="tabPosts">📝 文章</button>
-  <button data-tab="comments" data-i18n="tabComments">💬 评论</button>
-  <button data-tab="themes" data-i18n="tabThemes">🎨 主题</button>
-  <button data-tab="password" data-i18n="tabPassword">🔑 密码</button>
-  <button data-tab="system" data-i18n="tabSystem">ℹ️ 系统</button>
+
+<nav id="tabs" class="sticky top-[52px] z-30 flex gap-1.5 px-4 py-2.5 overflow-x-auto bg-[color-mix(in_srgb,var(--page-bg)_80%,transparent)] backdrop-blur-md">
+  <button data-tab="posts" class="fw-tab active" data-i18n="tabPosts">📝 文章</button>
+  <button data-tab="comments" class="fw-tab" data-i18n="tabComments">💬 评论</button>
+  <button data-tab="themes" class="fw-tab" data-i18n="tabThemes">🎨 主题</button>
+  <button data-tab="password" class="fw-tab" data-i18n="tabPassword">🔑 密码</button>
+  <button data-tab="system" class="fw-tab" data-i18n="tabSystem">ℹ️ 系统</button>
 </nav>
 
+<main class="flex-1 min-h-0">
 <!-- 文章 -->
-<div class="panel active" id="panel-posts">
-  <div class="layout">
-    <aside id="post-list"></aside>
-    <main class="editor-main">
-      <div class="fields">
-        <input id="f-title" class="full" data-i18n-ph="phTitle" placeholder="标题 *">
-        <input id="f-category" data-i18n-ph="phCategory" placeholder="分类">
-        <input id="f-tags" data-i18n-ph="phTags" placeholder="标签（逗号分隔）">
-        <textarea id="f-description" class="full" data-i18n-ph="phDescription" placeholder="摘要描述"></textarea>
-        <label class="full"><input type="checkbox" id="f-draft"> <span data-i18n="draftLabel">草稿（不对外发布）</span></label>
+<div class="panel active h-full" id="panel-posts">
+  <div class="flex h-full">
+    <aside id="post-list" class="w-72 shrink-0 overflow-y-auto p-3 bg-[var(--card-bg)] border-r border-[var(--line-color)]"></aside>
+    <div class="flex-1 min-w-0 flex flex-col">
+      <div class="fields grid grid-cols-2 gap-2.5 p-3.5 bg-[var(--card-bg)] border-b border-[var(--line-color)]">
+        <input id="f-title" class="fw-input col-span-2" data-i18n-ph="phTitle" placeholder="标题 *">
+        <input id="f-category" class="fw-input" data-i18n-ph="phCategory" placeholder="分类">
+        <input id="f-tags" class="fw-input" data-i18n-ph="phTags" placeholder="标签（逗号分隔）">
+        <textarea id="f-description" class="fw-input col-span-2 !min-h-[3rem] resize-y" data-i18n-ph="phDescription" placeholder="摘要描述"></textarea>
+        <label class="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" id="f-draft" class="accent-[var(--primary)]"> <span data-i18n="draftLabel">草稿（不对外发布）</span></label>
       </div>
-      <div class="toolbar">
-        <button id="btn-new" data-i18n="btnNew">＋ 新建</button>
-        <button id="btn-save" data-i18n="btnSave">保存</button>
-        <button id="btn-delete" data-i18n="btnDelete">删除</button>
+      <div class="toolbar flex gap-2 px-3.5 py-2.5 bg-[var(--card-bg)] border-b border-[var(--line-color)]">
+        <button id="btn-new" class="fw-btn fw-btn-ghost" data-i18n="btnNew">＋ 新建</button>
+        <button id="btn-save" class="fw-btn fw-btn-primary" data-i18n="btnSave">保存</button>
+        <button id="btn-delete" class="fw-btn fw-btn-danger" data-i18n="btnDelete">删除</button>
       </div>
-      <div id="editor"></div>
-    </main>
+      <div id="editor" class="flex-1 min-h-0 bg-[var(--card-bg)]"></div>
+    </div>
   </div>
 </div>
 
 <!-- 评论 -->
-<div class="panel" id="panel-comments">
-  <div class="list-panel">
-    <div class="filter-bar">
-      <input id="cmt-slug" data-i18n-ph="phCommentFilter" placeholder="按文章 slug 过滤（留空=全部）">
-      <button class="btn-primary btn-mini" id="cmt-load" data-i18n="btnLoad">加载</button>
+<div class="panel h-full overflow-y-auto" id="panel-comments">
+  <div class="max-w-3xl w-full mx-auto px-4 py-6">
+    <div class="flex gap-2 items-center mb-4">
+      <input id="cmt-slug" class="fw-input flex-1" data-i18n-ph="phCommentFilter" placeholder="按文章 slug 过滤（留空=全部）">
+      <button class="fw-btn fw-btn-primary" id="cmt-load" data-i18n="btnLoad">加载</button>
     </div>
-    <div id="cmt-list"></div>
+    <div id="cmt-list" class="space-y-3"></div>
   </div>
 </div>
 
 <!-- 主题 -->
-<div class="panel" id="panel-themes">
-  <div class="list-panel">
-    <div class="theme-grid" id="theme-grid"></div>
+<div class="panel h-full overflow-y-auto" id="panel-themes">
+  <div class="max-w-4xl w-full mx-auto px-4 py-6">
+    <div class="theme-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="theme-grid"></div>
   </div>
 </div>
 
 <!-- 密码 -->
-<div class="panel" id="panel-password">
-  <div class="pwd-panel">
-    <h3 data-i18n="pwdTitle">🔑 修改管理员密码</h3>
-    <input id="pwd-old" type="password" data-i18n-ph="pwdOld" placeholder="当前密码" autocomplete="current-password">
-    <input id="pwd-new" type="password" data-i18n-ph="pwdNew" placeholder="新密码（至少 6 个字符）" autocomplete="new-password">
-    <input id="pwd-new2" type="password" data-i18n-ph="pwdNew2" placeholder="确认新密码" autocomplete="new-password">
-    <div id="pwd-msg"></div>
-    <button id="pwd-ok" data-i18n="pwdSubmit">确认修改</button>
+<div class="panel h-full overflow-y-auto" id="panel-password">
+  <div class="max-w-md w-full mx-auto px-4 py-10">
+    <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-6">
+      <h3 class="font-bold text-lg relative pl-5 before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 mb-5" data-i18n="pwdTitle">🔑 修改管理员密码</h3>
+      <input id="pwd-old" type="password" class="fw-input w-full mb-2.5" data-i18n-ph="pwdOld" placeholder="当前密码" autocomplete="current-password">
+      <input id="pwd-new" type="password" class="fw-input w-full mb-2.5" data-i18n-ph="pwdNew" placeholder="新密码（至少 6 个字符）" autocomplete="new-password">
+      <input id="pwd-new2" type="password" class="fw-input w-full mb-2.5" data-i18n-ph="pwdNew2" placeholder="确认新密码" autocomplete="new-password">
+      <div id="pwd-msg" class="text-sm mb-2 min-h-[1.2rem] text-[var(--fw-err)]"></div>
+      <button id="pwd-ok" class="fw-btn fw-btn-primary" data-i18n="pwdSubmit">确认修改</button>
+    </div>
   </div>
 </div>
 
 <!-- 系统 -->
-<div class="panel" id="panel-system">
-  <div class="list-panel">
-    <div id="sys-info"></div>
+<div class="panel h-full overflow-y-auto" id="panel-system">
+  <div class="max-w-2xl w-full mx-auto px-4 py-6">
+    <div id="sys-info" class="card-base rounded-[var(--radius-large)] overflow-hidden p-6"></div>
   </div>
 </div>
+</main>
 
 <script src="/assets/cherry/cherry-markdown.core.js"></script>
-<!-- 后台 UI 逻辑：运行时 admin/ui.js 动态注入（热加载，无需重编译） -->
 <script src="/admin/ui.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"fuwari-server/config"
@@ -128,6 +129,9 @@ func main() {
 	// 初始化根级路径集合（反代前缀探测用）：后端段 + 嵌入前端根目录
 	InitKnownRoots(frontendFS)
 
+	// 解析前台构建产物样式表（后台 /admin 复用，保证前后台 UI 逐字节一致）
+	loadFrontendStyles(frontendFS)
+
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
 
@@ -156,14 +160,27 @@ func main() {
 			return
 		}
 		// 管理后台统一入口（/admin 主入口；/editor 兼容保留，二者渲染同一后台页）。
-		// 与前台走同一主题注入，保证前后台 UI 完全一致。
+		// 注入前台构建样式 + 统一主题注入，后台与前台 UI 完全一致。
 		if strings.HasPrefix(path, "/admin") || strings.HasPrefix(path, "/editor") {
 			data, err := fs.ReadFile(assetsFS, "assets/admin.html")
 			if err != nil {
 				c.Status(http.StatusNotFound)
 				return
 			}
-			injected := injectPageAssets(data, c)
+			s := string(data)
+			if strings.Contains(s, "<!-- FRONTEND_STYLES -->") {
+				var b strings.Builder
+				for _, href := range frontendStyles {
+					b.WriteString(`<link rel="stylesheet" href="` + href + `">` + "\n")
+				}
+				s = strings.Replace(s, "<!-- FRONTEND_STYLES -->", b.String(), 1)
+			}
+			// 前台 <html> 内联变量（--hue 等）复制到后台，保证 oklch 主题色与前台一致
+			if frontendHtmlStyle != "" {
+				s = strings.Replace(s, `<html lang="zh-CN">`,
+					`<html lang="zh-CN" style="`+frontendHtmlStyle+`">`, 1)
+			}
+			injected := injectPageAssets([]byte(s), c)
 			c.Header("Cache-Control", "no-cache")
 			c.Data(http.StatusOK, "text/html; charset=utf-8", injected)
 			return
@@ -270,6 +287,30 @@ func main() {
 
 	if err := http.ListenAndServe(listenAddr, siteHandler); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)
+	}
+}
+
+// frontendStyles 前台构建产物样式表（后台 /admin 复用，保证前后台视觉逐字节一致）
+var frontendStyles []string
+
+// frontendHtmlStyle 前台 <html> 内联 CSS 变量（--hue 等；oklch 颜色依赖 --hue）
+var frontendHtmlStyle string
+
+// loadFrontendStyles 从构建产物首页解析样式表链接（/_astro/*.css）与 html 内联变量
+func loadFrontendStyles(fsys fs.FS) {
+	data, err := fs.ReadFile(fsys, "index.html")
+	if err != nil {
+		return
+	}
+	re := regexp.MustCompile(`<link rel="stylesheet"[^>]*href="([^"]+)"`)
+	for _, m := range re.FindAllSubmatch(data, -1) {
+		href := string(m[1])
+		if strings.HasPrefix(href, "/_astro/") && strings.HasSuffix(href, ".css") {
+			frontendStyles = append(frontendStyles, href)
+		}
+	}
+	if m := regexp.MustCompile(`<html[^>]*\sstyle="([^"]+)"`).FindSubmatch(data); len(m) == 2 {
+		frontendHtmlStyle = string(m[1])
 	}
 }
 
