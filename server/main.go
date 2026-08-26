@@ -34,6 +34,12 @@ func main() {
 
 	config.Init()
 
+	// 命令行重置管理员密码模式：./fuwari-server -re pwd（忘记密码场景）
+	if isResetPwdMode() {
+		runResetPassword()
+		return
+	}
+
 	// 确保内容目录存在，并从种子目录初始化
 	if err := ensureContentDirs(); err != nil {
 		log.Fatalf("内容目录初始化失败: %v", err)
@@ -49,6 +55,9 @@ func main() {
 		log.Fatalf("数据库初始化失败: %v", err)
 	}
 	log.Println("数据库初始化完成")
+
+	// 首次启动引导初始管理员密码（数据库无密码哈希时）
+	ensureAdminPassword()
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -92,6 +101,8 @@ func main() {
 		admin.POST("/posts", handlers.CreatePost)
 		admin.PUT("/posts/:slug", handlers.UpdatePost)
 		admin.DELETE("/posts/:slug", handlers.DeletePost)
+		// 修改管理员密码（知道当前密码场景，AdminAuth 校验请求头）
+		admin.POST("/admin/password", security.RateLimit(5, 60), handlers.ChangeAdminPassword)
 	}
 
 	// 主题静态资源（运行时优先，嵌入默认兜底）

@@ -4,8 +4,6 @@ package config
 
 import (
 	"bufio"
-	"crypto/rand"
-	"encoding/hex"
 	"log"
 	"os"
 	"strconv"
@@ -31,10 +29,15 @@ POSTS_DIR=./content/posts
 # 默认指向 fuwari 模板自带的示例文章
 SRC_POSTS_DIR=./src/content/posts
 
-# ==================== 管理令牌 ====================
-# 用于内容写操作（创建/保存/删除文章）与评论删除的简单令牌。
-# 评论发表对读者开放（带限流与内容净化），仅删除评论需要此令牌。
-# 留空 = 首次启动自动生成随机令牌并打印到启动日志（请自行记录并回填此处）。
+# ==================== 管理员密码 ====================
+# 管理员密码以 bcrypt 哈希存于数据库（settings 表），用于内容写操作
+# （创建/保存/删除文章）、评论删除与修改密码。
+# 首次启动时：
+#   - 已设置 ADMIN_TOKEN  → 将其作为初始管理员密码写入数据库；
+#   - 留空               → 自动生成随机密码并打印到启动日志（仅显示一次）。
+# 之后一律以数据库中的密码为准，可通过：
+#   - /editor 页面修改（知道当前密码）；
+#   - 命令行重置：./fuwari-server -re pwd（忘记密码时）。
 ADMIN_TOKEN=
 
 # ==================== 评论 ====================
@@ -109,14 +112,10 @@ func Init() {
 	PostsDir = envOr("POSTS_DIR", "./content/posts")
 	SrcPostsDir = envOr("SRC_POSTS_DIR", "./src/content/posts")
 
+	// ADMIN_TOKEN 仅作为「首次启动的初始管理员密码」种子（由 main.ensureAdminPassword
+	// 写入数据库 bcrypt 哈希）。之后一律以数据库中的密码为准，可通过
+	// /editor 页面修改，或 ./fuwari-server -re pwd 命令行重置。
 	AdminToken = strings.TrimSpace(os.Getenv("ADMIN_TOKEN"))
-	if AdminToken == "" {
-		AdminToken = randomToken(24)
-		log.Println("========================================")
-		log.Printf("  未配置 ADMIN_TOKEN，已生成随机令牌（仅显示一次）: %s", AdminToken)
-		log.Println("  请将其写入 .env 的 ADMIN_TOKEN 后重启，否则下次启动令牌会变化")
-		log.Println("========================================")
-	}
 
 	CommentPageSize = envIntOr("COMMENT_PAGE_SIZE", 20)
 	CommentMaxLength = envIntOr("COMMENT_MAX_LENGTH", 4000)
@@ -185,13 +184,4 @@ func envIntOr(key string, fallback int) int {
 		return v
 	}
 	return fallback
-}
-
-// randomToken 生成 n 字节的十六进制随机令牌
-func randomToken(n int) string {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "change-me-" + strconv.FormatInt(int64(os.Getpid()), 10)
-	}
-	return hex.EncodeToString(b)
 }

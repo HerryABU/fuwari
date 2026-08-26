@@ -22,6 +22,7 @@ var DB *gorm.DB
 func AllModels() []interface{} {
 	return []interface{}{
 		&Comment{},
+		&Setting{},
 	}
 }
 

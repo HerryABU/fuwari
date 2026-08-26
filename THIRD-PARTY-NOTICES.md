@@ -65,6 +65,8 @@ exact versions are recorded in `pnpm-lock.yaml`.
 | gorm.io/gorm | MIT |
 | glebarez/sqlite (pure-Go SQLite driver, modernc.org) | BSD-3-Clause |
 | gopkg.in/yaml.v3 | MIT |
+| golang.org/x/crypto (bcrypt) | BSD-3-Clause |
+| golang.org/x/term | BSD-3-Clause |
 
 ## Bundled Assets
 

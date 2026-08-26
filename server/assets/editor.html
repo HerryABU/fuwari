@@ -19,7 +19,19 @@
   #btn-save { background: var(--primary, #3b82f6); color: #fff; }
   #btn-new { background: oklch(0.65 0.15 150); color: #fff; }
   #btn-delete { background: oklch(0.6 0.2 25); color: #fff; }
+  #btn-pwd { background: transparent; border: 1px solid var(--line-color, #d1d5db); color: var(--deep-text, #333); }
   #status { font-size: 0.8rem; color: var(--meta-divider, #6b7280); margin-left: auto; }
+  /* 修改密码弹窗（与前台主题变量完全一致） */
+  .pwd-modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .pwd-modal[hidden] { display: none; }
+  .pwd-card { background: var(--card-bg, #fff); color: var(--deep-text, #1f2328); border: 1px solid var(--line-color, rgba(0,0,0,.1)); border-radius: 0.75rem; padding: 1.25rem 1.5rem; width: min(360px, 90vw); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+  .pwd-card h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+  .pwd-card input { width: 100%; padding: 0.45rem 0.6rem; margin-bottom: 0.5rem; border: 1px solid var(--line-color, #d1d5db); border-radius: 0.4rem; font-size: 0.85rem; background: var(--page-bg, #fff); color: var(--deep-text, #1f2328); box-sizing: border-box; }
+  .pwd-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+  .pwd-actions button { padding: 0.4rem 1rem; border-radius: 0.4rem; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+  #pwd-ok { background: var(--primary, #3b82f6); color: #fff; }
+  #pwd-cancel { background: transparent; border: 1px solid var(--line-color, #d1d5db); color: var(--deep-text, #333); }
+  #pwd-msg { margin-top: 0.5rem; font-size: 0.8rem; min-height: 1rem; color: #fca5a5; }
   .layout { display: flex; flex: 1; min-height: 0; }
   aside { width: 260px; background: var(--card-bg, #fff); border-right: 1px solid var(--line-color, #e5e7eb); overflow-y: auto; padding: 0.5rem; transition: background .3s; }
   aside .post-item { padding: 0.5rem 0.6rem; border-radius: 0.4rem; cursor: pointer; margin-bottom: 0.25rem; }
@@ -45,11 +57,12 @@
 <body>
 <header>
   <span class="brand">✍️ Fuwari 编辑器</span>
-  <input id="token" type="password" placeholder="管理令牌（保存时必填）" autocomplete="off">
+  <input id="token" type="password" placeholder="管理员密码（保存时必填）" autocomplete="off">
   <select id="theme-switch" title="切换主题（即时生效，无需重新编译）"></select>
   <button id="btn-new">新建</button>
   <button id="btn-save">保存</button>
   <button id="btn-delete">删除</button>
+  <button id="btn-pwd">🔑 修改密码</button>
   <span id="status"></span>
 </header>
 <div class="layout">
@@ -64,6 +77,20 @@
     </div>
     <div id="editor"></div>
   </main>
+</div>
+<!-- 修改管理员密码弹窗 -->
+<div id="pwd-modal" class="pwd-modal" hidden>
+  <div class="pwd-card">
+    <h3>🔑 修改管理员密码</h3>
+    <input id="pwd-old" type="password" placeholder="当前密码" autocomplete="current-password">
+    <input id="pwd-new" type="password" placeholder="新密码（至少 6 个字符）" autocomplete="new-password">
+    <input id="pwd-new2" type="password" placeholder="确认新密码" autocomplete="new-password">
+    <div id="pwd-msg"></div>
+    <div class="pwd-actions">
+      <button id="pwd-cancel" type="button">取消</button>
+      <button id="pwd-ok" type="button">确认修改</button>
+    </div>
+  </div>
 </div>
 <script src="/assets/cherry/cherry-markdown.core.js"></script>
 <script>
@@ -246,6 +273,47 @@
     loadList();
   }
 
+  // ---------- 修改管理员密码（知道当前密码场景） ----------
+  function openPwdModal() {
+    el('pwd-old').value = ''; el('pwd-new').value = ''; el('pwd-new2').value = '';
+    el('pwd-msg').textContent = '';
+    el('pwd-modal').hidden = false;
+    el('pwd-old').focus();
+  }
+  function closePwdModal() { el('pwd-modal').hidden = true; }
+  function submitPwdChange() {
+    var oldP = el('pwd-old').value.trim();
+    var newP = el('pwd-new').value;
+    var new2 = el('pwd-new2').value;
+    var msg = el('pwd-msg');
+    if (!oldP) { msg.textContent = '请输入当前密码'; return; }
+    if (newP.length < 6) { msg.textContent = '新密码至少 6 个字符'; return; }
+    if (newP !== new2) { msg.textContent = '两次输入的新密码不一致'; return; }
+    var btn = el('pwd-ok');
+    btn.disabled = true;
+    fetch(API + '/admin/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': oldP },
+      body: JSON.stringify({ old_password: oldP, new_password: newP }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json.code === 0) {
+          msg.style.color = '#4ade80';
+          msg.textContent = '✅ 密码已修改，请使用新密码';
+          // 同步本地存储与输入框中的令牌
+          localStorage.setItem(TOKEN_KEY, newP);
+          el('token').value = newP;
+          setTimeout(closePwdModal, 1200);
+        } else {
+          msg.style.color = '#fca5a5';
+          msg.textContent = (json.message || '修改失败') + (json.code === 2 || json.code === 3 ? '（请检查当前密码）' : '');
+        }
+      })
+      .catch(function () { msg.style.color = '#fca5a5'; msg.textContent = '网络错误，请重试'; })
+      .finally(function () { btn.disabled = false; });
+  }
+
   // ---------- 初始化 ----------
   function init() {
     if (!window.Cherry) { setStatus('Cherry 加载失败', true); return; }
@@ -258,6 +326,10 @@
     el('btn-save').addEventListener('click', savePost);
     el('btn-new').addEventListener('click', newPost);
     el('btn-delete').addEventListener('click', deletePost);
+    el('btn-pwd').addEventListener('click', openPwdModal);
+    el('pwd-cancel').addEventListener('click', closePwdModal);
+    el('pwd-ok').addEventListener('click', submitPwdChange);
+    el('pwd-modal').addEventListener('click', function (e) { if (e.target === el('pwd-modal')) closePwdModal(); });
     el('theme-switch').addEventListener('change', function (e) { applyTheme(e.target.value); });
     loadThemes();
     el('token').addEventListener('keydown', function (e) {

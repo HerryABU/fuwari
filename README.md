@@ -131,12 +131,52 @@ fuwari-server.exe
 ```
 
 - Site: <http://localhost:9000>
-- Editor: <http://localhost:9000/editor> (enter the `ADMIN_TOKEN` from `.env`)
+- Editor: <http://localhost:9000/editor> (enter the admin password)
 - Health: <http://localhost:9000/api/health>
 
 Config lives in `.env` (auto-generated on first run): `SERVER_PORT`,
 `POSTS_DIR`, `DB_PATH`, `ADMIN_TOKEN`, `THEMES_DIR`, `EXTENSIONS_DIR`,
 `BIND_IPV4`, `ENABLE_IPV6`, etc.
+
+### 🔐 Admin Password
+
+The admin password (bcrypt-hashed, stored in the SQLite `settings` table)
+protects all write operations: creating/saving/deleting posts, deleting
+comments and changing the password itself. Comments are public to readers.
+
+**First boot** — the initial password is chosen once:
+
+- `ADMIN_TOKEN` set in `.env` → used as the initial admin password (written
+  into the database; existing deployments migrate seamlessly);
+- otherwise a random password is generated and printed to the startup log
+  (shown once — save it).
+
+**Change it** (when you know the password):
+
+- `/editor` → "🔑 修改密码" (enter current + new password, or use the API
+  `POST /api/admin/password` with `X-Admin-Token`).
+
+**Reset it** (when you forgot the password) — command line, no server needed:
+
+```bat
+:: 场景：服务在运行，但用户忘记了密码
+
+:: 1. 停止服务 (Ctrl+C)
+:: 2. 带重置参数启动
+fuwari-server -re pwd
+
+:: 输出：
+:: > 请输入新密码: ******
+:: > 请再次输入: ******
+:: > ✅ 管理员密码已重置，请重新启动服务
+:: > 按任意键继续...
+
+:: 3. 正常启动
+fuwari-server
+```
+
+New passwords must be at least 6 characters. The reset command also works
+piped (e.g. `echo -e "pass\npass" | fuwari-server -re pwd`) for automation.
 
 ### 🔗 Reverse-Proxy Sub-path Mounting (any prefix, no hardcoding)
 
