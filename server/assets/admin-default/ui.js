@@ -39,7 +39,7 @@
   /* ---------- i18n（首次部署默认中文；双语表，lang 存 localStorage） ---------- */
   var I18N = {
     zh: {
-      tabHome: '🏠 面板', tabPosts: '📝 文章', tabComments: '💬 评论', tabThemes: '🎨 主题', tabPassword: '🔑 密码', tabSystem: 'ℹ️ 系统',
+      tabHome: '🏠 面板', tabPosts: '📝 文章', tabComments: '💬 评论', tabThemes: '🎨 主题', tabSettings: '⚙️ 设置', tabPassword: '🔑 密码', tabSystem: 'ℹ️ 系统',
       siteRole: '管理控制台', openSite: '🌐 打开前台',
       quickTitle: '⚡ 快捷操作', quickNew: '✍️ 写新文章', quickComments: '💬 评论管理', quickThemes: '🎨 主题设置', quickPwd: '🔑 修改密码', quickSys: 'ℹ️ 系统信息',
       sysTitle: '🖥️ 系统状态', sysVersion: '版本', sysUptime: '运行时长', sysDatabase: '数据库', sysPort: '端口',
@@ -50,6 +50,15 @@
       phTitle: '标题 *', phCategory: '分类', phTags: '标签（逗号分隔）', phDescription: '摘要描述', phCommentFilter: '按文章 slug 过滤（留空 = 全部）', btnLoad: '加载',
       pwdTitle: '🔑 修改管理员密码', pwdOld: '当前密码', pwdNew: '新密码（至少 6 个字符）', pwdNew2: '确认新密码', pwdSubmit: '确认修改', pwdTip: '忘记密码？停止服务后运行 fuwari-server -re pwd 命令行重置。',
       themeTip: '点击卡片即可切换主题；主题文件位于 themes/ 目录，修改后刷新即生效。',
+      setThemeTitle: '🎨 主题', setThemeTip: '主题文件位于 themes/ 目录，到 🎨 主题页 点击卡片即可切换；修改主题文件后刷新即生效。',
+      frontThemeLabel: '前台显示主题切换器（右下角浮动按钮，访客可自选主题）',
+      injectTitle: '🧩 自定义注入（js / css / html）', injectTip: '与 alist 一致：向所有页面（前台 / 后台 / 编辑器）全局注入自定义内容，保存后刷新页面生效。',
+      headLabel: '自定义头部 HTML / JS（注入 <head> 尾部）', headPh: '<script>…</script> 或 <link rel="stylesheet" href="…">',
+      bodyLabel: '自定义尾部 HTML / JS（注入 </body> 前）', bodyPh: '<script>…</script> 或 <div>…</div>',
+      cssLabel: '全局 CSS（注入 <head> 的 <style>）', cssPh: 'body { … } / .my-widget { … }',
+      setSave: '保存设置', settingsSaved: '✅ 站点设置已保存，刷新页面生效',
+      extTitle: '🧸 扩展（小控件 / 看板娘等）', extTip: '扩展位于 extensions/<名称>/ 目录（index.js / index.css），自动注入所有页面，修改后刷新即生效。',
+      extActive: '已启用', extEmpty: '暂无扩展 — 将 index.js / index.css 放入 extensions/<名称>/ 即可',
       systemTitle: 'ℹ️ 系统信息', aboutTitle: '🍥 关于', aboutTip: 'Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。',
       draftTag: '草稿', saved: '已保存', deleted: '已删除', loadFail: '加载失败', uploadFail: '上传失败', networkErr: '网络错误，请重试',
       newMode: '新文章模式：保存后自动生成 slug', needTitle: '请填写标题', needToken: '请先填写管理员密码', noSelection: '未选择文章',
@@ -58,7 +67,7 @@
       langLabel: '语言'
     },
     en: {
-      tabHome: '🏠 Home', tabPosts: '📝 Posts', tabComments: '💬 Comments', tabThemes: '🎨 Themes', tabPassword: '🔑 Password', tabSystem: 'ℹ️ System',
+      tabHome: '🏠 Home', tabPosts: '📝 Posts', tabComments: '💬 Comments', tabThemes: '🎨 Themes', tabSettings: '⚙️ Settings', tabPassword: '🔑 Password', tabSystem: 'ℹ️ System',
       siteRole: 'Admin Console', openSite: '🌐 Open Site',
       quickTitle: '⚡ Quick Actions', quickNew: '✍️ New Post', quickComments: '💬 Comments', quickThemes: '🎨 Themes', quickPwd: '🔑 Password', quickSys: 'ℹ️ System Info',
       sysTitle: '🖥️ System Status', sysVersion: 'Version', sysUptime: 'Uptime', sysDatabase: 'Database', sysPort: 'Port',
@@ -69,6 +78,15 @@
       phTitle: 'Title *', phCategory: 'Category', phTags: 'Tags (comma separated)', phDescription: 'Description', phCommentFilter: 'Filter by post slug (empty = all)', btnLoad: 'Load',
       pwdTitle: '🔑 Change Admin Password', pwdOld: 'Current password', pwdNew: 'New password (min 6 chars)', pwdNew2: 'Confirm new password', pwdSubmit: 'Change', pwdTip: 'Forgot it? Stop the service and run fuwari-server -re pwd to reset from the command line.',
       themeTip: 'Click a card to switch theme; theme files live in themes/, edit and refresh.',
+      setThemeTitle: '🎨 Theme', setThemeTip: 'Theme files live in themes/. Click a card on the 🎨 Themes page to switch; edit and refresh to apply.',
+      frontThemeLabel: 'Show theme picker on the frontend (floating button, bottom-right)',
+      injectTitle: '🧩 Custom Injection (js / css / html)', injectTip: 'Like alist: inject custom content globally into all pages (frontend / admin / editor). Save then refresh to apply.',
+      headLabel: 'Custom head HTML / JS (injected before </head>)', headPh: '<script>…</script> or <link rel="stylesheet" href="…">',
+      bodyLabel: 'Custom body HTML / JS (injected before </body>)', bodyPh: '<script>…</script> or <div>…</div>',
+      cssLabel: 'Global CSS (injected into <head> <style>)', cssPh: 'body { … } / .my-widget { … }',
+      setSave: 'Save Settings', settingsSaved: '✅ Settings saved — refresh to apply',
+      extTitle: '🧸 Extensions (widgets / mascot etc.)', extTip: 'Extensions live in extensions/<name>/ (index.js / index.css), auto-injected into every page, refresh to apply.',
+      extActive: 'Active', extEmpty: 'No extensions — drop index.js / index.css into extensions/<name>/',
       systemTitle: 'ℹ️ System Info', aboutTitle: '🍥 About', aboutTip: 'A Go-backend blog system with an embedded Astro frontend. The admin UI shares the exact same styles and theme variables as the frontend.',
       draftTag: 'Draft', saved: 'Saved', deleted: 'Deleted', loadFail: 'Load failed', uploadFail: 'Upload failed', networkErr: 'Network error, please retry',
       newMode: 'New post mode: slug is auto-generated on save', needTitle: 'Please fill in the title', needToken: 'Please enter the admin password first', noSelection: 'No post selected',
@@ -138,7 +156,7 @@
   /* ---------- 视图解析（真实子页面 URL：/admin → home，/admin/posts → posts …） ---------- */
   function resolveView() {
     var p = window.location.pathname.replace(/\/+$/, '');
-    var m = p.match(/\/(posts|comments|themes|password|system)$/);
+    var m = p.match(/\/(posts|comments|themes|settings|password|system)$/);
     if (m) return m[1];
     return 'home';
   }
@@ -159,6 +177,7 @@
     }
     if (name === 'comments') loadComments();
     if (name === 'themes') loadThemeGrid();
+    if (name === 'settings') loadSettings();
     if (name === 'system') loadSystemInfo();
     if (name === 'home') loadDashboard();
   }
@@ -264,6 +283,56 @@
       .catch(function () {});
   }
 
+  /* ---------- 站点设置（主题开关 / alist 风格注入 / 扩展列表） ---------- */
+  function loadSettings() {
+    fetch(API + '/admin/settings', { headers: { 'X-Admin-Token': getToken() } })
+      .then(handleRes)
+      .then(function (d) {
+        var s = d.settings || {};
+        var ft = el('set-front-theme'); if (ft) ft.checked = !!s.front_theme;
+        var h = el('set-head-html'); if (h) h.value = s.head_html || '';
+        var b = el('set-body-html'); if (b) b.value = s.body_html || '';
+        var c = el('set-global-css'); if (c) c.value = s.global_css || '';
+        renderExtList(d.extensions || []);
+      })
+      .catch(function (e) {
+        if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+        else toast(e.message, true);
+      });
+  }
+  function saveSettings() {
+    fetch(API + '/admin/settings', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        head_html: el('set-head-html').value,
+        body_html: el('set-body-html').value,
+        global_css: el('set-global-css').value,
+        front_theme: el('set-front-theme').checked,
+      }),
+    })
+      .then(handleRes)
+      .then(function () { toast(T('settingsSaved')); })
+      .catch(function (e) {
+        if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+        else toast(e.message, true);
+      });
+  }
+  function renderExtList(list) {
+    var box = el('ext-list');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!list || !list.length) { box.innerHTML = '<div class="empty-tip">' + T('extEmpty') + '</div>'; return; }
+    list.forEach(function (n) {
+      var item = document.createElement('div');
+      item.className = 'list-item';
+      item.innerHTML =
+        '<div class="head"><span class="nm">🧩 ' + escapeHtml(n) + '</span><span class="tm">' + T('extActive') + '</span></div>' +
+        '<div class="ct">extensions/' + escapeHtml(n) + '/index.js|css → 注入所有页面</div>';
+      box.appendChild(item);
+    });
+  }
+
   /* ---------- 文章 ---------- */
   var postCache = [];
   function loadList() {
@@ -323,6 +392,9 @@
     resetForm();
     toast(T('newMode'));
     renderList();
+    // 新建后滚动到编辑器，避免停留在文章列表上方
+    var ed = el('editor');
+    if (ed) setTimeout(function () { ed.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
   }
   function savePost() {
     var title = el('f-title').value.trim();
@@ -563,6 +635,8 @@
     el('cmt-load').addEventListener('click', loadComments);
     el('cmt-slug').addEventListener('keydown', function (e) { if (e.key === 'Enter') loadComments(); });
     el('f-title').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el('f-category').focus(); } });
+    // 站点设置
+    el('set-save').addEventListener('click', saveSettings);
 
     applyHue();
     syncTheme();

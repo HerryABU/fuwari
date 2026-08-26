@@ -108,6 +108,9 @@ func main() {
 		admin.DELETE("/posts/:slug", handlers.DeletePost)
 		// 修改管理员密码（知道当前密码场景，AdminAuth 校验请求头）
 		admin.POST("/admin/password", security.RateLimit(5, 60), handlers.ChangeAdminPassword)
+		// 站点设置（alist 风格自定义注入 + 前台主题切换开关）
+		admin.GET("/admin/settings", handlers.GetSiteSettings)
+		admin.POST("/admin/settings", security.RateLimit(10, 60), handlers.UpdateSiteSettings)
 		// 编辑器图片上传
 		admin.POST("/admin/upload", security.RateLimit(30, 60), handlers.UploadImage)
 	}
@@ -534,6 +537,7 @@ var commentWidgetSnippet = `
 `
 
 // injectPageAssets 统一页面注入：评论挂件 + 主题（前后台一致）+ 扩展（看板娘等）
+// + 站点设置注入（alist 风格自定义头尾 HTML / 全局 CSS / 前台主题切换器）
 // + FUWARI_BASE（反代前缀自适应），最后统一把根绝对路径改写为带前缀路径。
 // 对所有 HTML 页面注入，保证无刷新导航后资产持续存在。
 func injectPageAssets(html []byte, c *gin.Context) []byte {
@@ -542,6 +546,9 @@ func injectPageAssets(html []byte, c *gin.Context) []byte {
 	themeCSS := handlers.ThemeHeadInjection(themeName)
 	themeJS := handlers.ThemeBodyInjection(themeName)
 	extInjection := handlers.BuildExtensionInjection()
+	// 站点设置注入（管理后台页面不注入前台主题切换器）
+	isAdminPage := strings.HasPrefix(c.Request.URL.Path, "/admin") || strings.HasPrefix(c.Request.URL.Path, "/editor")
+	siteHead, siteBody := handlers.BuildSiteInjection(isAdminPage)
 
 	s := string(html)
 
@@ -550,12 +557,16 @@ func injectPageAssets(html []byte, c *gin.Context) []byte {
 	// 注意：不能用 "window.FUWARI_BASE" 做防重复标记——editor.html 等脚本已引用该全局名。
 	baseScript := fmt.Sprintf(`<script id="fuwari-base">window.FUWARI_BASE=%q;</script>`, basePath)
 
-	// 主题 CSS 注入 <head>（data-fuwari-theme 标记防重复）
+	// 主题 CSS + 站点级 head 注入（自定义头 HTML / 全局 CSS）
 	var headInjection strings.Builder
 	headInjection.WriteString(baseScript)
 	if themeCSS != "" {
 		headInjection.WriteString("\n")
 		headInjection.WriteString(themeCSS)
+	}
+	if siteHead != "" {
+		headInjection.WriteString("\n")
+		headInjection.WriteString(siteHead)
 	}
 	if !strings.Contains(s, `id="fuwari-base"`) && headInjection.Len() > 0 {
 		if idx := strings.LastIndex(s, "</head>"); idx >= 0 {
@@ -570,7 +581,7 @@ func injectPageAssets(html []byte, c *gin.Context) []byte {
 		}
 	}
 
-	// 主题 JS + 扩展 + 评论挂件 注入 </body> 前
+	// 主题 JS + 扩展 + 评论挂件 + 站点级 body 注入（自定义尾 HTML / 主题切换器）注入 </body> 前
 	var bodyJS strings.Builder
 	if themeJS != "" {
 		bodyJS.WriteString(themeJS)
@@ -587,6 +598,12 @@ func injectPageAssets(html []byte, c *gin.Context) []byte {
 			bodyJS.WriteString("\n")
 		}
 		bodyJS.WriteString(commentWidgetSnippet)
+	}
+	if siteBody != "" {
+		if bodyJS.Len() > 0 {
+			bodyJS.WriteString("\n")
+		}
+		bodyJS.WriteString(siteBody)
 	}
 	if bodyJS.Len() > 0 {
 		if idx := strings.LastIndex(s, "</body>"); idx >= 0 {

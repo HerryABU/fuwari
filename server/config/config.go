@@ -101,6 +101,9 @@ var (
 	// 管理后台 UI 目录（运行时热加载：ui.css / ui.js，无需重编译）
 	AdminDir string
 
+	// 数据目录（站点设置等运行时配置）
+	DataDir string
+
 	// 网络 / IPv6
 	BindIPv4   string
 	EnableIPv6 bool
@@ -134,6 +137,8 @@ func Init() {
 	ExtensionsDir = envOr("EXTENSIONS_DIR", "./extensions")
 
 	AdminDir = envOr("ADMIN_DIR", "./admin")
+
+	DataDir = envOr("DATA_DIR", "./data")
 
 	BindIPv4 = envOr("BIND_IPV4", "0.0.0.0")
 	EnableIPv6 = envOr("ENABLE_IPV6", "false") == "true"

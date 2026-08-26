@@ -30,6 +30,7 @@
         <a href="/admin/posts" data-tab="posts" class="fw-tab" data-i18n="tabPosts">📝 文章</a>
         <a href="/admin/comments" data-tab="comments" class="fw-tab" data-i18n="tabComments">💬 评论</a>
         <a href="/admin/themes" data-tab="themes" class="fw-tab" data-i18n="tabThemes">🎨 主题</a>
+        <a href="/admin/settings" data-tab="settings" class="fw-tab" data-i18n="tabSettings">⚙️ 设置</a>
         <a href="/admin/password" data-tab="password" class="fw-tab" data-i18n="tabPassword">🔑 密码</a>
         <a href="/admin/system" data-tab="system" class="fw-tab" data-i18n="tabSystem">ℹ️ 系统</a>
       </nav>
@@ -71,6 +72,7 @@
           <a href="/admin/posts" data-tab="posts" class="fw-tab fw-tab-block" data-i18n="tabPosts">📝 文章</a>
           <a href="/admin/comments" data-tab="comments" class="fw-tab fw-tab-block" data-i18n="tabComments">💬 评论</a>
           <a href="/admin/themes" data-tab="themes" class="fw-tab fw-tab-block" data-i18n="tabThemes">🎨 主题</a>
+          <a href="/admin/settings" data-tab="settings" class="fw-tab fw-tab-block" data-i18n="tabSettings">⚙️ 设置</a>
           <a href="/admin/password" data-tab="password" class="fw-tab fw-tab-block" data-i18n="tabPassword">🔑 密码</a>
           <a href="/admin/system" data-tab="system" class="fw-tab fw-tab-block" data-i18n="tabSystem">ℹ️ 系统</a>
         </nav>
@@ -167,21 +169,23 @@
           </div>
           <div class="card-base p-5 onload-animation" style="animation-delay:60ms">
             <div class="widget-title" data-i18n="editorTitle">✍️ 编辑器</div>
-            <div class="fw-editor-grid mt-2 mb-3 px-1">
-              <div class="flex flex-col gap-2">
-                <input id="f-title" class="fw-input w-full" data-i18n-ph="phTitle" placeholder="标题 *">
-                <input id="f-category" class="fw-input w-full" data-i18n-ph="phCategory" placeholder="分类">
-                <input id="f-tags" class="fw-input w-full" data-i18n-ph="phTags" placeholder="标签（逗号分隔）">
-                <textarea id="f-description" class="fw-input w-full resize-y" data-i18n-ph="phDescription" placeholder="摘要描述"></textarea>
-                <label class="flex items-center gap-2 text-sm text-75 cursor-pointer select-none px-0.5">
-                  <input type="checkbox" id="f-draft" class="fw-check">
-                  <span data-i18n="draftLabel">草稿（不对外发布）</span>
-                </label>
-                <div class="flex gap-2 mt-1">
-                  <button id="btn-save" class="btn-regular rounded-lg h-11 flex-1 font-bold text-sm active:scale-95 transition" data-i18n="btnSave">保存</button>
-                  <button id="btn-delete" class="fw-btn-danger rounded-lg h-11 font-bold text-sm px-4" data-i18n="btnDelete">删除</button>
+            <div class="mt-2 mb-3 px-1">
+              <div class="fw-form-grid">
+                <input id="f-title" class="fw-input" data-i18n-ph="phTitle" placeholder="标题 *">
+                <input id="f-category" class="fw-input" data-i18n-ph="phCategory" placeholder="分类">
+                <input id="f-tags" class="fw-input" data-i18n-ph="phTags" placeholder="标签（逗号分隔）">
+                <div class="fw-form-actions">
+                  <label class="flex items-center gap-2 text-sm text-75 cursor-pointer select-none">
+                    <input type="checkbox" id="f-draft" class="fw-check">
+                    <span data-i18n="draftLabel">草稿（不对外发布）</span>
+                  </label>
+                  <div class="flex gap-2">
+                    <button id="btn-save" class="btn-regular rounded-lg h-11 px-6 font-bold text-sm active:scale-95 transition" data-i18n="btnSave">保存</button>
+                    <button id="btn-delete" class="fw-btn-danger rounded-lg h-11 font-bold text-sm px-4" data-i18n="btnDelete">删除</button>
+                  </div>
                 </div>
               </div>
+              <textarea id="f-description" class="fw-input w-full resize-y" data-i18n-ph="phDescription" placeholder="摘要描述"></textarea>
               <div id="editor" class="fw-editor"></div>
             </div>
           </div>
@@ -205,6 +209,45 @@
             <div class="widget-title" data-i18n="tabThemes">🎨 主题</div>
             <p class="text-sm text-75 px-1 mb-4" data-i18n="themeTip">点击卡片即可切换主题；主题文件位于 themes/ 目录，修改后刷新即生效。</p>
             <div class="fw-theme-grid" id="theme-grid"></div>
+          </div>
+        </div>
+
+        <!-- ═══════ 子页面：设置（主题 / 注入 / 扩展，alist 风格） ═══════ -->
+        <div class="fw-view" id="view-settings">
+          <div class="card-base p-5 onload-animation">
+            <div class="widget-title" data-i18n="setThemeTitle">🎨 主题</div>
+            <p class="text-sm text-75 px-1 mb-4" data-i18n="setThemeTip">主题文件位于 themes/ 目录，到 <a href="/admin/themes" class="fw-inline-link">🎨 主题页</a> 点击卡片即可切换；修改主题文件后刷新即生效。</p>
+            <label class="flex items-center gap-2 text-sm text-75 cursor-pointer select-none px-1">
+              <input type="checkbox" id="set-front-theme" class="fw-check">
+              <span data-i18n="frontThemeLabel">前台显示主题切换器（右下角浮动按钮，访客可自选主题）</span>
+            </label>
+          </div>
+          <div class="card-base p-5 onload-animation" style="animation-delay:60ms">
+            <div class="widget-title" data-i18n="injectTitle">🧩 自定义注入（js / css / html）</div>
+            <p class="text-sm text-75 px-1 mb-3" data-i18n="injectTip">与 alist 一致：向所有页面（前台 / 后台 / 编辑器）全局注入自定义内容，保存后刷新页面生效。</p>
+            <div class="flex flex-col gap-3 px-1">
+              <div>
+                <div class="fw-field-label" data-i18n="headLabel">自定义头部 HTML / JS（注入 &lt;head&gt; 尾部）</div>
+                <textarea id="set-head-html" class="fw-input w-full fw-code-input" data-i18n-ph="headPh" placeholder="&lt;script&gt;...&lt;/script&gt; 或 &lt;link rel=stylesheet&gt;…"></textarea>
+              </div>
+              <div>
+                <div class="fw-field-label" data-i18n="bodyLabel">自定义尾部 HTML / JS（注入 &lt;/body&gt; 前）</div>
+                <textarea id="set-body-html" class="fw-input w-full fw-code-input" data-i18n-ph="bodyPh" placeholder="&lt;script&gt;...&lt;/script&gt; 或 &lt;div&gt;…&lt;/div&gt;"></textarea>
+              </div>
+              <div>
+                <div class="fw-field-label" data-i18n="cssLabel">全局 CSS（注入 &lt;head&gt; 的 &lt;style&gt;）</div>
+                <textarea id="set-global-css" class="fw-input w-full fw-code-input" data-i18n-ph="cssPh" placeholder="body { … } / .my-widget { … }"></textarea>
+              </div>
+              <div class="flex items-center gap-3">
+                <button id="set-save" class="btn-regular rounded-lg h-11 px-6 font-bold text-sm active:scale-95 transition" data-i18n="setSave">保存设置</button>
+                <span id="set-msg" class="text-sm text-50"></span>
+              </div>
+            </div>
+          </div>
+          <div class="card-base p-5 onload-animation" style="animation-delay:120ms">
+            <div class="widget-title" data-i18n="extTitle">🧸 扩展（小控件 / 看板娘等）</div>
+            <p class="text-sm text-75 px-1 mb-3" data-i18n="extTip">扩展位于 extensions/&lt;名称&gt;/ 目录（index.js / index.css），自动注入所有页面，修改后刷新即生效。</p>
+            <div id="ext-list" class="px-1 flex flex-col gap-2"></div>
           </div>
         </div>
 

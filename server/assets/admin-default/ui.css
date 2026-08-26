@@ -101,6 +101,67 @@ body {
 /* 交互元素统一手型 */
 .fw-tab, .fw-action, .post-item, .stat-card, .fw-btn-danger { cursor: pointer; }
 
+/* ---------- 动态生成内容的 utility 补齐 ----------
+ * ui.js 模板字符串里的 Tailwind 类不会被 Astro JIT 扫描编译（只扫 src/），
+ * 缺失会导致最近文章/列表/按钮排版错位。此处按 Tailwind 默认值补齐。
+ */
+.py-2\.5 { padding-top: .625rem; padding-bottom: .625rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.pt-2 { padding-top: .5rem; }
+.pb-3 { padding-bottom: .75rem; }
+.mt-3 { margin-top: .75rem; }
+.ml-auto { margin-left: auto; }
+.min-w-0 { min-width: 0; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-9 { height: 2.25rem; }
+.font-medium { font-weight: 500; }
+.space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: .5rem; }
+.text-\[var\(--meta-divider\)\] { color: var(--meta-divider); }
+
+/* ---------- 编辑器表单（两列网格 + 摘要全宽 + 编辑器全宽，任何宽度都不错位） ---------- */
+.fw-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .5rem;
+  margin-bottom: .5rem;
+}
+@media (min-width: 768px) {
+  .fw-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.fw-form-actions {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  padding-top: .15rem;
+}
+
+/* ---------- 设置页：字段标签 / 代码输入 / 内联链接 ---------- */
+.fw-field-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--meta-divider);
+  margin-bottom: .35rem;
+  padding-left: .15rem;
+}
+.fw-code-input {
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace;
+  font-size: .8rem;
+  min-height: 6.5rem;
+  resize: vertical;
+  line-height: 1.55;
+}
+.fw-inline-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--link-underline);
+  text-underline-offset: .2rem;
+  transition: color .2s;
+}
+.fw-inline-link:hover { color: var(--btn-content); }
+
 /* ---------- 卡片标题（复刻前台 WidgetLayout：ml-8 + primary 竖线） ---------- */
 .widget-title {
   font-weight: 700;
@@ -405,8 +466,8 @@ html.dark .fw-action { color: #d4d4d4; }
 }
 
 /* ---------- Cherry 编辑器跟随主题（与前台一致） ---------- */
-.fw-editor { min-height: 62vh; }
-.fw-editor .cherry { height: 62vh; }
+.fw-editor { min-height: 480px; }
+.fw-editor .cherry { height: calc(100vh - 22rem); min-height: 480px; }
 .fw-editor .cherry .cherry-editor, .fw-editor .cherry .cherry-previewer { height: 100%; }
 .fw-editor .cherry {
   --fill-color: var(--card-bg);
