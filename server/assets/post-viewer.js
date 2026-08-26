@@ -131,15 +131,16 @@
       if (!json || json.code !== 0) return;
       var list = json.data.list || [];
       if (!list.length) return;
+      var wrap = document.getElementById('content-wrapper') || document.body;
       var seen = {};
-      document.querySelectorAll('a[href*="/posts/"]').forEach(function (a) {
+      // 仅在内容区内统计已见 slug（避免 sidebar「最新文章」等区域链接干扰定位）
+      wrap.querySelectorAll('a[href*="/posts/"]').forEach(function (a) {
         var mm = a.getAttribute('href').match(postRe);
         if (mm) seen[decodeURIComponent(mm[1])] = true;
       });
-      var wrap = document.getElementById('content-wrapper') || document.body;
-      // 文章列表容器：第一个包含 ≥2 个文章链接的祖先容器（内部追加 = footer 之前，避免跑到版权下方）
+      // 文章列表容器：内容区内第一个包含 ≥2 篇文章链接的祖先（内部追加 = footer 之前）
       var listEl = null;
-      var firstLink = document.querySelector('a[href*="/posts/"]');
+      var firstLink = wrap.querySelector('a[href*="/posts/"]');
       if (firstLink) {
         var anc = firstLink;
         while (anc && anc !== wrap && anc !== document.body && anc !== document.documentElement) {
@@ -147,7 +148,7 @@
           anc = anc.parentElement;
         }
       }
-      var target = listEl || wrap;
+      var footer = wrap.querySelector('.footer, footer');
       var added = 0;
       list.forEach(function (p) {
         if (p.draft || seen[p.slug]) return;
@@ -157,7 +158,10 @@
           '<a href="' + fwBase + 'posts/' + encodeURIComponent(p.slug) + '/" class="transition font-bold text-2xl hover:text-[var(--primary)]">' + escapeHtml(p.title) + '</a>' +
           '<div class="mt-2 text-sm opacity-70">' + escapeHtml(p.published || '') + (p.category ? ' · ' + escapeHtml(p.category) : '') + '</div>' +
           (p.description ? '<p class="mt-3 opacity-80">' + escapeHtml(p.description) + '</p>' : '');
-        target.appendChild(card);
+        // 插入顺序：列表容器内 > footer 之前（绝不落到版权下方）
+        if (listEl) listEl.appendChild(card);
+        else if (footer) wrap.insertBefore(card, footer);
+        else wrap.appendChild(card);
         added++;
       });
       if (added) console.log('[fuwari] 已追加 ' + added + ' 篇运行时文章到列表');
