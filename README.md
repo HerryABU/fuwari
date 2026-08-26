@@ -87,6 +87,55 @@ All commands are run from the root of the project, from a terminal:
 | `pnpm new-post <filename>` | Create a new post                                   |
 | `pnpm astro ...`           | Run CLI commands like `astro add`, `astro check`    |
 | `pnpm astro --help`        | Get help using the Astro CLI                        |
+| `build.bat`                | Build the full stack: Astro frontend → Go backend (single exe) |
+
+## 🐹 Go Backend (fuwari-server)
+
+This repository has been refactored from a static Astro template into a
+self-contained blog system with a Go backend, mirroring the architecture of
+the [NVS](https://github.com/HerryABU/nvs-community-web) project:
+
+- **Blog content is stored on the file system** — Markdown files with YAML
+  frontmatter in a runtime content directory (`content/posts`, seeded from
+  `src/content/posts` on first run).
+- **Comments are stored in a database** — SQLite via GORM
+  (`data/fuwari.db`); comment posting is open to readers (rate-limited +
+  sanitized), deletion requires the admin token.
+- **Cherry Markdown is integrated as the Markdown renderer/editor** —
+  a standalone article editor at `/editor` (full Cherry editor, token-gated),
+  and a comment widget injected into article pages at serve time (Cherry
+  renders comments and powers the comment composer). Frontend sources are
+  untouched — visual/behavior/structure of the original theme is preserved.
+- **Single binary** — the Astro build output is embedded into the Go server
+  (`server/dist`), so `fuwari-server.exe` serves the whole site.
+
+### Build
+
+```bat
+build.bat
+```
+
+Or manually:
+
+```sh
+pnpm install
+pnpm build                          # -> dist/
+robocopy dist server/dist /E        # sync embedded frontend (or xcopy)
+cd server && go build -o fuwari-server.exe .
+```
+
+### Run
+
+```sh
+fuwari-server.exe
+```
+
+- Site: <http://localhost:9000>
+- Editor: <http://localhost:9000/editor> (enter the `ADMIN_TOKEN` from `.env`)
+- Health: <http://localhost:9000/api/health>
+
+Config lives in `.env` (auto-generated on first run): `SERVER_PORT`,
+`POSTS_DIR`, `DB_PATH`, `ADMIN_TOKEN`, etc.
 
 ## ✏️ Contributing
 
