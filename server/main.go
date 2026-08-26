@@ -6,7 +6,6 @@
 package main
 
 import (
-	"embed"
 	"fmt"
 	"io/fs"
 	"log"
@@ -23,9 +22,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-//go:embed all:dist
-var distFS embed.FS
 
 func main() {
 	// 确保工作目录为可执行文件所在目录（双击启动时工作目录可能不是程序目录）
@@ -72,11 +68,13 @@ func main() {
 	r.GET("/api/posts/:slug", handlers.GetPost)
 	r.GET("/api/posts/:slug/raw", handlers.GetPostRaw)
 
+	// 评论发表对读者开放（限流 + 内容净化，见 security.SanitizeMarkdown）
+	r.POST("/api/comments", security.RateLimit(10, 60), handlers.CreateComment)
+
 	// 管理令牌保护
 	admin := r.Group("/api")
 	admin.Use(security.AdminAuth())
 	{
-		admin.POST("/comments", handlers.CreateComment)
 		admin.DELETE("/comments/:id", handlers.DeleteComment)
 		admin.POST("/posts", handlers.CreatePost)
 		admin.PUT("/posts/:slug", handlers.UpdatePost)
@@ -94,6 +92,32 @@ func main() {
 
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
+
+		// Cherry Markdown 静态资源（编辑器 + 评论挂件共用，含 Apache-2.0 LICENSE 随附）
+		if strings.HasPrefix(path, "/assets/cherry/") {
+			serveEmbeddedAsset(c, strings.TrimPrefix(path, "/assets/cherry/"), "cherry")
+			return
+		}
+		// 评论挂件脚本/样式（服务端注入用）
+		if path == "/assets/comments.js" {
+			serveEmbeddedAsset(c, "comments.js", "")
+			return
+		}
+		if path == "/assets/comments.css" {
+			serveEmbeddedAsset(c, "comments.css", "")
+			return
+		}
+		// 文章管理编辑器（独立页面，令牌经弹窗输入，不改前端源码）
+		if strings.HasPrefix(path, "/editor") {
+			data, err := fs.ReadFile(assetsFS, "assets/editor.html")
+			if err != nil {
+				c.Status(http.StatusNotFound)
+				return
+			}
+			c.Header("Cache-Control", "no-cache")
+			c.Data(http.StatusOK, "text/html; charset=utf-8", data)
+			return
+		}
 
 		// /api/* 未匹配 → 404（JSON），不落回前端
 		if strings.HasPrefix(path, "/api/") {
@@ -122,6 +146,21 @@ func main() {
 		cleanPath := strings.TrimPrefix(path, "/")
 		if cleanPath == "" {
 			cleanPath = "index.html"
+		}
+
+		// HTML 页面：解析出实际文件并注入评论挂件
+		if resolved, ok := resolveFrontendFile(frontendFS, cleanPath); ok && strings.HasSuffix(resolved, ".html") {
+			data, err := fs.ReadFile(frontendFS, resolved)
+			if err == nil {
+				injected := injectCommentWidget(data)
+				if strings.HasPrefix(resolved, "_astro/") {
+					c.Header("Cache-Control", "public, max-age=31536000, immutable")
+				} else {
+					c.Header("Cache-Control", "public, max-age=3600")
+				}
+				c.Data(http.StatusOK, "text/html; charset=utf-8", injected)
+				return
+			}
 		}
 
 		if f, err := frontendFS.Open(cleanPath); err == nil {
@@ -249,6 +288,94 @@ func copyTree(src, dst string) error {
 		}
 		return os.WriteFile(target, data, 0644)
 	})
+}
+
+// serveEmbeddedAsset 从嵌入的 assets 目录提供静态资源。
+// sub 为 assets/ 下的相对路径；root 指定子目录前缀（如 "cherry"），空表示 assets 根。
+func serveEmbeddedAsset(c *gin.Context, sub, root string) {
+	clean := filepath.ToSlash(filepath.Clean("/" + sub))
+	full := strings.TrimPrefix(clean, "/")
+	if root != "" {
+		full = root + "/" + full
+	}
+	data, err := fs.ReadFile(assetsFS, "assets/"+full)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.Header("Cache-Control", "public, max-age=86400")
+	c.Data(http.StatusOK, assetContentType(full), data)
+}
+
+// resolveFrontendFile 将干净的 URL 路径解析为嵌入前端中的实际文件。
+// Astro 使用 trailingSlash: always，页面为 /posts/xxx/index.html 或 /xxx/index.html 形式。
+// 目录/无扩展名路径优先尝试 index.html（确保命中页面而非目录句柄）。
+func resolveFrontendFile(fsys fs.FS, cleanPath string) (string, bool) {
+	var candidates []string
+	switch {
+	case strings.HasSuffix(cleanPath, "/"):
+		candidates = []string{cleanPath + "index.html", cleanPath}
+	case !strings.Contains(filepath.Base(cleanPath), "."):
+		candidates = []string{cleanPath + "/index.html", cleanPath + ".html", cleanPath}
+	default:
+		candidates = []string{cleanPath}
+	}
+	for _, c := range candidates {
+		if f, err := fsys.Open(c); err == nil {
+			f.Close()
+			return c, true
+		}
+	}
+	return "", false
+}
+
+// commentWidgetSnippet 评论挂件的样式与脚本（服务端注入，不改前端源码）
+var commentWidgetSnippet = `
+<link rel="stylesheet" href="/assets/comments.css">
+<script src="/assets/comments.js"></script>
+`
+
+// injectCommentWidget 将评论挂件标签注入 HTML 的 </body> 前。
+// 对所有 HTML 页面注入（脚本内部自行判断是否为文章页），
+// 保证 swup 无刷新导航后挂件脚本持续存在、由 MutationObserver 重新挂载。
+func injectCommentWidget(html []byte) []byte {
+	if strings.Contains(string(html), "/assets/comments.js") {
+		return html // 已注入
+	}
+	s := string(html)
+	idx := strings.LastIndex(s, "</body>")
+	if idx < 0 {
+		idx = strings.LastIndex(s, "</html>")
+	}
+	if idx < 0 {
+		return append(html, []byte(commentWidgetSnippet)...)
+	}
+	injected := s[:idx] + commentWidgetSnippet + s[idx:]
+	return []byte(injected)
+}
+
+// assetContentType 按扩展名返回 MIME 类型
+func assetContentType(name string) string {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".js":
+		return "application/javascript; charset=utf-8"
+	case ".css":
+		return "text/css; charset=utf-8"
+	case ".svg":
+		return "image/svg+xml"
+	case ".woff":
+		return "font/woff"
+	case ".woff2":
+		return "font/woff2"
+	case ".ttf":
+		return "font/ttf"
+	case ".eot":
+		return "application/vnd.ms-fontobject"
+	case ".html":
+		return "text/html; charset=utf-8"
+	default:
+		return "application/octet-stream"
+	}
 }
 
 // healthHTML 浏览器访问 /health 时的简单状态页

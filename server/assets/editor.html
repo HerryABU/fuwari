@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuwari 文章编辑器</title>
+<link rel="stylesheet" href="/assets/cherry/cherry-markdown.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f6f8; color: #1f2328; height: 100vh; display: flex; flex-direction: column; }
+  header { background: #1f2328; color: #fff; padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  header .brand { font-weight: 700; margin-right: 0.5rem; }
+  header input[type=password] { padding: 0.35rem 0.6rem; border-radius: 0.4rem; border: none; width: 220px; font-size: 0.85rem; }
+  header button { padding: 0.4rem 1rem; border-radius: 0.4rem; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+  #btn-save { background: #3b82f6; color: #fff; }
+  #btn-new { background: #22c55e; color: #fff; }
+  #btn-delete { background: #ef4444; color: #fff; }
+  #status { font-size: 0.8rem; color: #cbd5e1; margin-left: auto; }
+  .layout { display: flex; flex: 1; min-height: 0; }
+  aside { width: 260px; background: #fff; border-right: 1px solid #e5e7eb; overflow-y: auto; padding: 0.5rem; }
+  aside .post-item { padding: 0.5rem 0.6rem; border-radius: 0.4rem; cursor: pointer; margin-bottom: 0.25rem; }
+  aside .post-item:hover { background: #f1f5f9; }
+  aside .post-item.active { background: #e0e7ff; }
+  aside .post-item .t { font-weight: 600; font-size: 0.85rem; }
+  aside .post-item .s { font-size: 0.7rem; color: #6b7280; }
+  aside .empty { color: #9ca3af; font-size: 0.8rem; text-align: center; padding: 2rem 0; }
+  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .fields { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0.6rem 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .fields .full { grid-column: 1 / -1; }
+  .fields input, .fields textarea { padding: 0.4rem 0.6rem; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem; }
+  .fields textarea { min-height: 3rem; resize: vertical; }
+  .fields label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+  #editor { flex: 1; min-height: 0; background: #fff; }
+  #editor .cherry { height: 100%; }
+  #editor .cherry .cherry-editor, #editor .cherry .cherry-previewer { height: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">✍️ Fuwari 编辑器</span>
+  <input id="token" type="password" placeholder="管理令牌（保存时必填）" autocomplete="off">
+  <button id="btn-new">新建</button>
+  <button id="btn-save">保存</button>
+  <button id="btn-delete">删除</button>
+  <span id="status"></span>
+</header>
+<div class="layout">
+  <aside id="post-list"></aside>
+  <main>
+    <div class="fields">
+      <input id="f-title" class="full" placeholder="标题 *">
+      <input id="f-category" placeholder="分类">
+      <input id="f-tags" placeholder="标签（逗号分隔）">
+      <textarea id="f-description" class="full" placeholder="摘要描述"></textarea>
+      <label class="full"><input type="checkbox" id="f-draft"> 草稿（不对外发布）</label>
+    </div>
+    <div id="editor"></div>
+  </main>
+</div>
+<script src="/assets/cherry/cherry-markdown.core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var API = '/api';
+  var currentSlug = null;
+  var cherry = null;
+  var TOKEN_KEY = 'fuwari_admin_token';
+
+  function el(id) { return document.getElementById(id); }
+  function getToken() {
+    var t = el('token').value.trim();
+    if (!t) t = localStorage.getItem(TOKEN_KEY) || '';
+    return t;
+  }
+  function setStatus(msg, isErr) {
+    var s = el('status');
+    s.textContent = msg;
+    s.style.color = isErr ? '#fca5a5' : '#cbd5e1';
+  }
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'X-Admin-Token': getToken() };
+  }
+  function handleRes(res) {
+    return res.json().then(function (json) {
+      if (json && json.code === 0) return json.data;
+      var err = new Error((json && json.message) || '请求失败');
+      err.needToken = (json && (json.code === 2 || json.code === 3));
+      throw err;
+    });
+  }
+
+  // ---------- 文章列表 ----------
+  function loadList() {
+    fetch(API + '/posts?include_draft=1')
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json.code !== 0) return;
+        var list = json.data.list || [];
+        var box = el('post-list');
+        box.innerHTML = '';
+        if (!list.length) {
+          box.innerHTML = '<div class="empty">暂无文章，点击「新建」开始</div>';
+          return;
+        }
+        list.forEach(function (p) {
+          var item = document.createElement('div');
+          item.className = 'post-item' + (p.slug === currentSlug ? ' active' : '');
+          item.innerHTML = '<div class="t">' + esc(p.title || p.slug) + (p.draft ? ' [草稿]' : '') + '</div>' +
+            '<div class="s">' + esc(p.slug) + ' · ' + esc(p.published || '') + '</div>';
+          item.addEventListener('click', function () { openPost(p.slug); });
+          box.appendChild(item);
+        });
+      });
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  // ---------- 打开 / 保存 / 删除 ----------
+  function openPost(slug) {
+    fetch(API + '/posts/' + encodeURIComponent(slug))
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json.code !== 0) { setStatus('加载失败: ' + json.message, true); return; }
+        var p = json.data;
+        currentSlug = p.slug;
+        el('f-title').value = p.title || '';
+        el('f-category').value = p.category || '';
+        el('f-tags').value = (p.tags || []).join(', ');
+        el('f-description').value = p.description || '';
+        el('f-draft').checked = !!p.draft;
+        cherry.setValue(p.body || '');
+        setStatus('已加载: ' + p.slug);
+        loadList();
+      });
+  }
+
+  function collectPayload() {
+    var title = el('f-title').value.trim();
+    if (!title) { setStatus('请填写标题', true); return null; }
+    return {
+      title: title,
+      category: el('f-category').value.trim(),
+      tags: el('f-tags').value.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean),
+      description: el('f-description').value.trim(),
+      draft: el('f-draft').checked,
+      body: cherry.getMarkdown(),
+    };
+  }
+
+  function savePost() {
+    var payload = collectPayload();
+    if (!payload) return;
+    if (!getToken()) { setStatus('请先填写管理令牌', true); return; }
+    var isNew = !currentSlug;
+    var url = isNew ? API + '/posts' : API + '/posts/' + encodeURIComponent(currentSlug);
+    var method = isNew ? 'POST' : 'PUT';
+    fetch(url, { method: method, headers: authHeaders(), body: JSON.stringify(payload) })
+      .then(handleRes)
+      .then(function (data) {
+        localStorage.setItem(TOKEN_KEY, getToken());
+        currentSlug = data.slug || currentSlug;
+        setStatus('已保存: ' + (data.slug || currentSlug));
+        loadList();
+      })
+      .catch(function (e) {
+        setStatus(e.message, true);
+      });
+  }
+
+  function deletePost() {
+    if (!currentSlug) { setStatus('未选择文章', true); return; }
+    if (!confirm('确认删除文章 ' + currentSlug + ' ？')) return;
+    if (!getToken()) { setStatus('请先填写管理令牌', true); return; }
+    fetch(API + '/posts/' + encodeURIComponent(currentSlug), {
+      method: 'DELETE',
+      headers: { 'X-Admin-Token': getToken() },
+    })
+      .then(handleRes)
+      .then(function () {
+        localStorage.setItem(TOKEN_KEY, getToken());
+        currentSlug = null;
+        resetForm();
+        setStatus('已删除');
+        loadList();
+      })
+      .catch(function (e) { setStatus(e.message, true); });
+  }
+
+  function resetForm() {
+    el('f-title').value = '';
+    el('f-category').value = '';
+    el('f-tags').value = '';
+    el('f-description').value = '';
+    el('f-draft').checked = false;
+    cherry.setValue('');
+  }
+
+  function newPost() {
+    currentSlug = null;
+    resetForm();
+    setStatus('新文章模式（保存后自动生成 slug）');
+    loadList();
+  }
+
+  // ---------- 初始化 ----------
+  function init() {
+    if (!window.Cherry) { setStatus('Cherry 加载失败', true); return; }
+    cherry = new Cherry({
+      id: 'editor',
+      value: '',
+      editor: { defaultModel: 'edit&preview' },
+      toolbars: { showToolbar: true },
+    });
+    el('btn-save').addEventListener('click', savePost);
+    el('btn-new').addEventListener('click', newPost);
+    el('btn-delete').addEventListener('click', deletePost);
+    el('token').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') savePost();
+    });
+    // 恢复已保存令牌
+    var saved = localStorage.getItem(TOKEN_KEY);
+    if (saved) el('token').value = saved;
+    loadList();
+    setStatus('就绪');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

@@ -93,8 +93,8 @@ func slugFromPath(rel string) string {
 	return dir + "/" + base
 }
 
-// listPosts 扫描内容目录返回文章列表（默认倒序，排除草稿）
-func listPosts() ([]Post, error) {
+// listPosts 扫描内容目录返回文章列表（默认倒序；includeDraft=true 时包含草稿）
+func listPosts(includeDraft bool) ([]Post, error) {
 	var posts []Post
 	root := config.PostsDir
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
@@ -112,7 +112,7 @@ func listPosts() ([]Post, error) {
 		if perr != nil {
 			return nil // 跳过无法解析的文件
 		}
-		if fm.Draft {
+		if fm.Draft && !includeDraft {
 			return nil
 		}
 		rel, _ := filepath.Rel(root, path)
@@ -166,9 +166,10 @@ func resolvePostFile(slug string) (string, error) {
 	return "", fmt.Errorf("post not found")
 }
 
-// ListPosts GET /api/posts
+// ListPosts GET /api/posts?include_draft=1
 func ListPosts(c *gin.Context) {
-	posts, err := listPosts()
+	includeDraft := c.Query("include_draft") == "1" || c.Query("include_draft") == "true"
+	posts, err := listPosts(includeDraft)
 	if err != nil {
 		utils.InternalError(c, "读取文章列表失败")
 		return
