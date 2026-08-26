@@ -41,6 +41,7 @@ type Post struct {
 	Image        string   `json:"image"`
 	Tags         []string `json:"tags"`
 	Category     string   `json:"category"`
+	Lang         string   `json:"lang,omitempty"` // 文章语言（与 fuwari lang frontmatter 对齐）
 	Draft        bool     `json:"draft"`
 	CommentCount int64    `json:"comment_count"`
 }
@@ -126,6 +127,7 @@ func listPosts(includeDraft bool) ([]Post, error) {
 			Image:        fm.Image,
 			Tags:         fm.Tags,
 			Category:     fm.Category,
+			Lang:         fm.Lang,
 			Draft:        fm.Draft,
 			CommentCount: models.CountCommentsByTarget("post", slug),
 		})
@@ -205,6 +207,7 @@ func GetPost(c *gin.Context) {
 			Image:        fm.Image,
 			Tags:         fm.Tags,
 			Category:     fm.Category,
+			Lang:         fm.Lang,
 			Draft:        fm.Draft,
 			CommentCount: models.CountCommentsByTarget("post", slug),
 		},

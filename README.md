@@ -25,19 +25,25 @@ fuwari-server.exe   ← one file: frontend + API + SQLite + themes + editor
 
 **Backend (Go)**
 - 🗄️ **Comments in SQLite** — readers post freely (per-IP rate limit + XSS
-  sanitization); deletion requires the admin password
+  sanitization); deletion requires the admin password; manageable in `/admin`
 - 📁 **Posts on the file system** — Markdown + YAML frontmatter, seeded from
   `src/content/posts` on first boot; full CRUD API
-- ✍️ **Cherry Markdown** — `/editor` full article editor + comment widget
-  (renderer & composer) injected into article pages at serve time
+- ✍️ **Admin console at `/admin`** — unified backend (posts editor, comment
+  management, theme switcher, password change, system info), Cherry Markdown
+  editor with image upload
+- 🌐 **Dynamic runtime posts** — posts created in `/admin` are rendered on the
+  frontend via Cherry even though the SSG frontend was built earlier; home &
+  list pages auto-append them
 - 🎨 **Runtime theme system** (alist-style) — hot reload, front **and**
-  `/editor` backend share the exact same CSS variables
+  `/admin` backend share the exact same CSS variables
 - 🧩 **Hot-loadable extensions** — live2d/kanban-musume, analytics, any
   `index.js`/`index.css`, injected into every page
 - 🔗 **Reverse-proxy sub-path mounting** — works under any `/{name}/` prefix,
   no hardcoding, no recompiling
-- 🔐 **Admin password** — bcrypt in SQLite; change in `/editor` or reset from
+- 🔐 **Admin password** — bcrypt in SQLite; change in `/admin` or reset from
   the command line (`-re pwd`)
+- 🌍 **i18n** — admin console & comment widget support Chinese/English
+  (`fuwari_lang` in localStorage, `?lang=en|zh`, or browser language)
 - 🌐 **IPv6** dual-stack listening (`ENABLE_IPV6=true`)
 
 ---
@@ -69,7 +75,8 @@ fuwari-server.exe
 ```
 
 - Site: <http://localhost:9000>
-- Editor: <http://localhost:9000/editor>
+- Admin console: <http://localhost:9000/admin> (posts / comments / themes /
+  password / system; `/editor` still works as an alias)
 - Health: <http://localhost:9000/api/health>
 
 On first boot the server generates a `.env` template, seeds the content
@@ -92,7 +99,7 @@ changing the password itself.
 
 **Change it** (when you know the password):
 
-- `/editor` → "🔑 修改密码" dialog (current + new password), or
+- `/admin` → "🔑 密码" tab (current + new password), or
 - `POST /api/admin/password` with `X-Admin-Token: <current>`.
 
 **Reset it** (forgot the password) — no server needed:
@@ -123,7 +130,7 @@ Auth headers: `X-Admin-Token: <password>` or `Authorization: Bearer <password>`.
 
 ## 🎨 Theme System (hot-reload, no recompiling)
 
-The UI — frontend **and** the `/editor` backend — is fully themeable at
+The UI — frontend **and** the `/admin` backend — is fully themeable at
 runtime, alist-style:
 
 ```
@@ -136,7 +143,7 @@ themes/
 ```
 
 - **Switch**: URL `?theme=ocean`, Cookie `fuwari_theme`, or the switcher in
-  the editor — persisted in the cookie.
+  the admin console — persisted in the cookie.
 - **Hot reload**: edit any file under `themes/<name>/` and refresh — no
   recompiling, no restart.
 - **Front/back consistency**: the backend editor consumes the exact same CSS
@@ -173,28 +180,49 @@ Edit and refresh — no recompiling. See `extensions/README.md` for details.
 - The comment widget is injected into article pages at serve time (frontend
   sources untouched); Cherry Markdown renders each comment and provides the
   composer editor.
-- **Deletion requires the admin password**: `DELETE /api/comments/:id`.
+- **Deletion requires the admin password**: `DELETE /api/comments/:id`, or
+  use the Comments tab in `/admin` (list all / filter by slug / delete).
 
 ---
 
-## ✍️ Article Editor (/editor)
+## ✍️ Admin Console (/admin)
 
-A standalone admin page (no frontend changes) with the full Cherry Markdown
-editor (`edit&preview`):
+The unified management console (no frontend changes), fully themed like the
+frontend and i18n (中文/English):
 
-- List/create/save/delete posts against the file-system content store
-- Post metadata: title, category, tags, description, draft flag
-- Theme switcher — the backend UI is themed identically to the frontend
-- 🔑 Change admin password dialog
+- **📝 Posts** — list/create/save/delete posts against the file-system store;
+  full Cherry Markdown editor (`edit&preview`) with **image upload**
+  (`POST /api/admin/upload` → stored under `content/posts/uploads/`)
+- **💬 Comments** — view all comments (or filter by slug), delete
+- **🎨 Themes** — theme cards + instant switching
+- **🔑 Password** — change the admin password
+- **ℹ️ System** — version / host / uptime / paths / themes / extensions
 
-Access: <http://localhost:9000/editor> — enter the admin password (kept in
-`localStorage` between sessions).
+Access: <http://localhost:9000/admin> — enter the admin password (kept in
+`localStorage` between sessions). `/editor` remains as a compatible alias.
 
 ---
 
-## 🔗 Reverse-Proxy Sub-path Mounting
+## 🌐 Runtime Posts on the Frontend
 
-The whole site — pages, **js/css assets**, API, comments, `/editor`, themes,
+The Astro frontend is built statically, so posts created at runtime are not
+in the embedded `dist`. A serve-time injected viewer script solves this
+without touching frontend sources:
+
+- Visiting `/posts/<new-slug>/` renders the post with Cherry Markdown
+  (title / date / tags / body / images), then the comment widget attaches.
+- Home/list pages append cards for runtime posts that are missing from the
+  built-in list.
+
+## 🌍 i18n (Admin & Comment Widget)
+
+The admin console and the comment widget ship with Chinese and English.
+Language is picked from, in order: `localStorage.fuwari_lang`, URL
+`?lang=en|zh`, then the browser language. The admin header has a language
+switcher that persists the choice. Post `lang` frontmatter is also exposed
+via the API for content-level language marking.
+
+The whole site — pages, **js/css assets**, API, comments, `/admin`, themes,
 extensions and pagefind search — works under **any** reverse-proxy sub-path
 such as `https://host:8088/{name}/`. The proxy must keep the prefix
 (no path rewriting); fuwari auto-detects it per request:
@@ -202,7 +230,7 @@ such as `https://host:8088/{name}/`. The proxy must keep the prefix
 - HTML absolute references (`/_astro/*.js|css`, `/assets/*`, `/themes/*`,
   `/extensions/*`, `/pagefind/*`, favicon, nav links) are rewritten to
   `/{name}/...` at serve time — nothing is hardcoded, no recompiling.
-- API calls from the comment widget and the `/editor` use
+- API calls from the comment widget and the `/admin` console use
   `window.FUWARI_BASE` (injected into `<head>`) to stay prefix-agnostic.
 - A mount-aware handler strips the prefix internally and re-routes
   (`/{name}/api/...` → `/api/...`), so direct access keeps working unchanged.
@@ -256,12 +284,13 @@ Unified response envelope: `{code, message, data}` (`0` = success).
 | POST | `/api/posts` | ✅ | Create post |
 | PUT | `/api/posts/:slug` | ✅ | Update post |
 | DELETE | `/api/posts/:slug` | ✅ | Delete post |
-| GET | `/api/comments?slug=` | — | List comments |
+| GET | `/api/comments` | — | List comments (empty `slug` = all, for admin) |
 | POST | `/api/comments` | — | Post comment (rate-limited, sanitized) |
 | DELETE | `/api/comments/:id` | ✅ | Delete comment |
 | GET | `/api/themes` | — | List themes |
 | POST | `/api/theme` | — | Switch theme (cookie) |
 | POST | `/api/admin/password` | ✅ | Change admin password |
+| POST | `/api/admin/upload` | ✅ | Upload image (multipart `file`, ≤5MB) → `/uploads/*` |
 | GET | `/themes/:name/*` | — | Theme assets (runtime-first, embedded fallback) |
 | GET | `/extensions/:name/*` | — | Extension assets |
 
@@ -277,7 +306,7 @@ Unified response envelope: `{code, message, data}` (`0` = success).
 ├── extensions/            # extension templates
 └── server/                # Go backend (mirrors the NVS architecture)
     ├── dist/              # Astro build output — embedded via go:embed
-    ├── assets/            # Cherry Markdown, comment widget, /editor, default theme
+    ├── assets/            # Cherry Markdown, admin console, widgets (comments/post-viewer), default theme
     ├── config/            # .env loading & runtime config
     ├── models/            # GORM models (Comment, Setting) + SQLite
     ├── handlers/          # posts (fs), comments, themes, extensions, admin

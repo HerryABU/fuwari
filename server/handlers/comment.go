@@ -13,14 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetComments 获取文章评论列表（公开）
+// GetComments 获取评论列表（公开；管理后台可留空 slug 查全部）
 // GET /api/comments?slug=xxx&page=1&page_size=20
 func GetComments(c *gin.Context) {
 	slug := strings.TrimSpace(c.Query("slug"))
-	if slug == "" {
-		utils.BadRequest(c, "缺少文章标识")
-		return
-	}
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", strconv.Itoa(config.CommentPageSize)))
 	if page < 1 {
@@ -30,7 +26,17 @@ func GetComments(c *gin.Context) {
 		pageSize = config.CommentPageSize
 	}
 
-	comments, total, err := models.GetCommentsByTarget("post", slug, page, pageSize)
+	var (
+		comments []models.Comment
+		total    int64
+		err      error
+	)
+	if slug == "" {
+		// 管理后台：无 slug = 全部评论（时间倒序）
+		comments, total, err = models.GetAllComments(page, pageSize)
+	} else {
+		comments, total, err = models.GetCommentsByTarget("post", slug, page, pageSize)
+	}
 	if err != nil {
 		utils.InternalError(c, "获取评论失败")
 		return

@@ -103,6 +103,8 @@ func main() {
 		admin.DELETE("/posts/:slug", handlers.DeletePost)
 		// 修改管理员密码（知道当前密码场景，AdminAuth 校验请求头）
 		admin.POST("/admin/password", security.RateLimit(5, 60), handlers.ChangeAdminPassword)
+		// 编辑器图片上传
+		admin.POST("/admin/upload", security.RateLimit(30, 60), handlers.UploadImage)
 	}
 
 	// 主题静态资源（运行时优先，嵌入默认兜底）
@@ -139,10 +141,15 @@ func main() {
 			serveEmbeddedAsset(c, "comments.css", "")
 			return
 		}
-		// 文章管理编辑器（独立页面，令牌经弹窗输入，不改前端源码）
+		// 动态文章查看器（SSG 下运行时文章前台渲染 + 列表补全）
+		if path == "/assets/post-viewer.js" {
+			serveEmbeddedAsset(c, "post-viewer.js", "")
+			return
+		}
+		// 管理后台统一入口（/admin 主入口；/editor 兼容保留，二者渲染同一后台页）。
 		// 与前台走同一主题注入，保证前后台 UI 完全一致。
-		if strings.HasPrefix(path, "/editor") {
-			data, err := fs.ReadFile(assetsFS, "assets/editor.html")
+		if strings.HasPrefix(path, "/admin") || strings.HasPrefix(path, "/editor") {
+			data, err := fs.ReadFile(assetsFS, "assets/admin.html")
 			if err != nil {
 				c.Status(http.StatusNotFound)
 				return
@@ -433,10 +440,11 @@ func resolveFrontendFile(fsys fs.FS, cleanPath string) (string, bool) {
 	return "", false
 }
 
-// commentWidgetSnippet 评论挂件的样式与脚本（服务端注入，不改前端源码）
+// commentWidgetSnippet 评论挂件 + 动态文章查看器（服务端注入，不改前端源码）
 var commentWidgetSnippet = `
 <link rel="stylesheet" href="/assets/comments.css">
 <script src="/assets/comments.js"></script>
+<script src="/assets/post-viewer.js"></script>
 `
 
 // injectPageAssets 统一页面注入：评论挂件 + 主题（前后台一致）+ 扩展（看板娘等）

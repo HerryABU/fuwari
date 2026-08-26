@@ -12,6 +12,19 @@
 	// 所有 API/资源路径一律经此拼接，严禁硬编码绝对路径。
 	var fwBase = window.FUWARI_BASE || '/';
 
+	// ---------- i18n（en/zh，localStorage fuwari_lang / URL ?lang= / 浏览器语言） ----------
+	var I18N = {
+		zh: { title: '💬 评论', empty: '暂无评论，来抢沙发吧～', anonymous: '匿名', anonShort: '匿',
+			nickname: '昵称', submit: '发表评论', fail: '发表失败' },
+		en: { title: '💬 Comments', empty: 'No comments yet — be the first!', anonymous: 'Anonymous', anonShort: 'A',
+			nickname: 'Nickname', submit: 'Post comment', fail: 'Failed to post' },
+	};
+	var lang = localStorage.getItem('fuwari_lang') ||
+		new URLSearchParams(location.search).get('lang') ||
+		((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en');
+	if (lang !== 'zh') lang = 'en';
+	function T(k) { return (I18N[lang] && I18N[lang][k]) || k; }
+
 	// 从 URL 推导文章 slug：/posts/guide/ -> guide ；/posts/a/b/ -> a/b
 	// 兼容反代前缀（/name/posts/guide/）与普通路径。
 	function detectSlug() {
@@ -158,7 +171,7 @@
 		if (!items || !items.length) {
 			var empty = document.createElement('div');
 			empty.className = 'fw-empty';
-			empty.textContent = '暂无评论，来抢沙发吧～';
+			empty.textContent = T('empty');
 			container.appendChild(empty);
 			return;
 		}
@@ -170,10 +183,10 @@
 			meta.className = 'fw-meta';
 			var av = document.createElement('span');
 			av.className = 'fw-avatar';
-			av.textContent = (c.nickname || '匿')[0].toUpperCase();
+			av.textContent = (c.nickname || T('anonShort'))[0].toUpperCase();
 			var nick = document.createElement('span');
 			nick.className = 'fw-nickname';
-			nick.textContent = c.nickname || '匿名';
+			nick.textContent = c.nickname || T('anonymous');
 			var time = document.createElement('span');
 			time.className = 'fw-time';
 			time.textContent = fmtTime(c.created_at);
@@ -225,7 +238,7 @@
 		var count = document.createElement('span');
 		count.className = 'fw-count';
 		count.textContent = '…';
-		title.appendChild(document.createTextNode('💬 评论'));
+		title.appendChild(document.createTextNode(T('title')));
 		title.appendChild(count);
 		wrap.appendChild(title);
 
@@ -237,12 +250,12 @@
 		form.className = 'fw-form';
 		form.innerHTML =
 			'<div class="fw-form-row">' +
-			'<input type="text" name="nickname" placeholder="昵称" maxlength="32" required>' +
+			'<input type="text" name="nickname" placeholder="' + T('nickname') + '" maxlength="32" required>' +
 			'</div>' +
 			'<div class="fw-editor-wrap"><div id="fuwari-comment-editor"></div></div>' +
 			'<div class="fw-actions">' +
-			'<button type="submit" class="fw-submit">发表评论</button>' +
-			'<span class="fw-hint">支持 Markdown 语法</span>' +
+			'<button type="submit" class="fw-submit">' + T('submit') + '</button>' +
+			'<span class="fw-hint">' + (lang==='zh' ? '支持 Markdown 语法' : 'Markdown supported') + '</span>' +
 			'</div>';
 		wrap.appendChild(form);
 
@@ -302,7 +315,7 @@
 					});
 				} else {
 					var hint = form.querySelector('.fw-hint');
-					hint.textContent = (res && res.message) || '发表失败';
+					hint.textContent = (res && res.message) || T('fail');
 					hint.className = 'fw-error';
 				}
 			});

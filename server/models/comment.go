@@ -53,6 +53,23 @@ func GetCommentsByTarget(targetType, targetSlug string, page, pageSize int) ([]C
 	return comments, total, nil
 }
 
+// GetAllComments 分页查询全部评论（管理后台用，时间倒序）
+func GetAllComments(page, pageSize int) ([]Comment, int64, error) {
+	var comments []Comment
+	var total int64
+
+	if err := DB.Model(&Comment{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	if err := DB.Model(&Comment{}).Order("created_at DESC").
+		Offset(offset).Limit(pageSize).Find(&comments).Error; err != nil {
+		return nil, 0, err
+	}
+	return comments, total, nil
+}
+
 // GetCommentByID 按 ID 查询评论
 func GetCommentByID(id uint) (*Comment, error) {
 	var comment Comment
