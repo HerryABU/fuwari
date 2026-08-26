@@ -38,6 +38,8 @@ yarn.lock
 server/*.exe~
 server/*.exe.bak
 server/fuwari-server
+# WorkBuddy workspace-local artifacts (verification screenshots, memory)
+.workbuddy/
 # runtime database & logs
 data/
 server/data/
