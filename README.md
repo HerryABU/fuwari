@@ -135,7 +135,48 @@ fuwari-server.exe
 - Health: <http://localhost:9000/api/health>
 
 Config lives in `.env` (auto-generated on first run): `SERVER_PORT`,
-`POSTS_DIR`, `DB_PATH`, `ADMIN_TOKEN`, etc.
+`POSTS_DIR`, `DB_PATH`, `ADMIN_TOKEN`, `THEMES_DIR`, `EXTENSIONS_DIR`,
+`BIND_IPV4`, `ENABLE_IPV6`, etc.
+
+## 🎨 Theme System (hot-reload, no recompiling)
+
+The UI — frontend **and** the `/editor` backend — is fully themeable at
+runtime, alist-style. Themes live in `themes/<name>/`:
+
+```
+themes/
+  ocean/
+    theme.css        # CSS variable overrides (front & back UI share the same vars)
+    background.jpg   # optional background image (referenced in theme.css)
+    custom.js        # optional custom script (mascot/live2d, analytics, ...)
+    manifest.json    # optional metadata (name/description/author/version)
+```
+
+- **Switch**: URL `?theme=ocean`, Cookie `fuwari_theme`, or the switcher in
+  the editor; persisted in cookie.
+- **Hot reload**: edit any file under `themes/<name>/` and refresh — no
+  recompiling, no restart.
+- **Front/back consistency**: the backend editor consumes the exact same CSS
+  variables as the frontend (`--page-bg`, `--card-bg`, `--deep-text`,
+  `--primary`, `--hue`, ...), so a theme change restyles both instantly.
+  Note: fuwari sets `--hue` inline in the original Layout, so theme CSS
+  should use `!important` on variables it overrides.
+- **Defaults**: `default` theme is the original untouched look (embedded).
+  Template themes are seeded into the runtime `themes/` dir on first run.
+
+## 🧩 Extensions (hot-loadable, live2d-style)
+
+Drop a folder under `extensions/<name>/` with `index.js` / `index.css`;
+they are injected into **every page** (frontend + backend) at serve time:
+
+```
+extensions/
+  live2d/
+    index.js         # mascot/kanban musume entry
+    model/           # model assets (served at /extensions/live2d/model/...)
+```
+
+Edit and refresh — no recompiling. See `extensions/README.md` for details.
 
 ## ✏️ Contributing
 
