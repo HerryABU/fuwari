@@ -182,8 +182,7 @@
     var p = el('login-pwd'); if (p) p.value = '';
     showLogin();
     toast(T('loggedOut'));
-  }
-  function authHeaders(extra) {
+  }  function authHeaders(extra) {
     var h = { 'Content-Type': 'application/json', 'X-Admin-Token': getToken() };
     if (extra) Object.keys(extra).forEach(function (k) { h[k] = extra[k]; });
     return h;
@@ -763,75 +762,80 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  /* ---------- init ---------- */
+  /* ---------- init（整体异常兜底：任何脚本错误都不白屏，回退登录视图） ---------- */
   function init() {
-    // 认证：登录视图 / 退出
-    el('login-btn').addEventListener('click', doLogin);
-    el('login-pwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
-    el('logout-btn').addEventListener('click', doLogout);
-    el('logout-btn-m').addEventListener('click', doLogout);
-    setToken(getToken());
+    try {
+      // 认证：登录视图 / 退出
+      el('login-btn').addEventListener('click', doLogin);
+      el('login-pwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+      el('logout-btn').addEventListener('click', doLogout);
+      el('logout-btn-m').addEventListener('click', doLogout);
+      setToken(getToken());
 
-    // 浮层面板
-    el('nav-menu-switch').addEventListener('click', function (e) { e.stopPropagation(); togglePanel('nav-menu-panel'); });
-    bindClickOutside('nav-menu-panel', ['nav-menu-panel', 'nav-menu-switch']);
+      // 浮层面板
+      el('nav-menu-switch').addEventListener('click', function (e) { e.stopPropagation(); togglePanel('nav-menu-panel'); });
+      bindClickOutside('nav-menu-panel', ['nav-menu-panel', 'nav-menu-switch']);
 
-    // 深浅色（桌面 + 移动）
-    el('scheme-switch').addEventListener('click', toggleTheme);
-    el('scheme-switch-m').addEventListener('click', toggleTheme);
+      // 深浅色（桌面 + 移动）
+      el('scheme-switch').addEventListener('click', toggleTheme);
+      el('scheme-switch-m').addEventListener('click', toggleTheme);
 
-    // 主题 / 语言（桌面 + 移动同步）
-    document.querySelectorAll('[id="theme-switch"],[id="theme-switch-m"]').forEach(function (sel) {
-      sel.addEventListener('change', function (e) {
-        document.querySelectorAll('[id="theme-switch"],[id="theme-switch-m"]').forEach(function (o) { if (o !== e.target) o.value = e.target.value; });
-        applyTheme(e.target.value);
+      // 主题 / 语言（桌面 + 移动同步）
+      document.querySelectorAll('[id="theme-switch"],[id="theme-switch-m"]').forEach(function (sel) {
+        sel.addEventListener('change', function (e) {
+          document.querySelectorAll('[id="theme-switch"],[id="theme-switch-m"]').forEach(function (o) { if (o !== e.target) o.value = e.target.value; });
+          applyTheme(e.target.value);
+        });
       });
-    });
-    document.querySelectorAll('[id="lang-switch"],[id="lang-switch-m"]').forEach(function (sel) {
-      sel.addEventListener('change', function (e) {
-        lang = e.target.value;
-        localStorage.setItem('fuwari_lang', lang);
-        applyI18n();
-        activateView(resolveView());
+      document.querySelectorAll('[id="lang-switch"],[id="lang-switch-m"]').forEach(function (sel) {
+        sel.addEventListener('change', function (e) {
+          lang = e.target.value;
+          localStorage.setItem('fuwari_lang', lang);
+          applyI18n();
+          activateView(resolveView());
+        });
       });
-    });
 
-    // 文章
-    el('btn-save').addEventListener('click', savePost);
-    el('btn-new').addEventListener('click', function (e) { e.preventDefault(); newPost(); });
-    el('btn-delete').addEventListener('click', deletePost);
-    el('post-search').addEventListener('input', renderList);
-    el('pwd-ok').addEventListener('click', submitPwdChange);
-    el('cmt-load').addEventListener('click', loadComments);
-    el('cmt-slug').addEventListener('keydown', function (e) { if (e.key === 'Enter') loadComments(); });
-    el('f-title').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el('f-category').focus(); } });
-    // 站点设置
-    el('set-save').addEventListener('click', saveSettings);
-    // 扩展分组管理
-    el('ext-new').addEventListener('click', newExtGroup);
-    el('ext-new-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') newExtGroup(); });
-    el('ext-clone').addEventListener('click', cloneExtGroup);
-    el('ext-del-group').addEventListener('click', delExtGroup);
-    el('ext-file-new').addEventListener('click', newExtFile);
-    el('ext-file-new-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') newExtFile(); });
-    el('ext-file-save').addEventListener('click', saveExtFile);
-    el('ext-file-del').addEventListener('click', delExtFile);
+      // 文章
+      el('btn-save').addEventListener('click', savePost);
+      el('btn-new').addEventListener('click', function (e) { e.preventDefault(); newPost(); });
+      el('btn-delete').addEventListener('click', deletePost);
+      el('post-search').addEventListener('input', renderList);
+      el('pwd-ok').addEventListener('click', submitPwdChange);
+      el('cmt-load').addEventListener('click', loadComments);
+      el('cmt-slug').addEventListener('keydown', function (e) { if (e.key === 'Enter') loadComments(); });
+      el('f-title').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el('f-category').focus(); } });
+      // 站点设置
+      el('set-save').addEventListener('click', saveSettings);
+      // 扩展分组管理
+      el('ext-new').addEventListener('click', newExtGroup);
+      el('ext-new-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') newExtGroup(); });
+      el('ext-clone').addEventListener('click', cloneExtGroup);
+      el('ext-del-group').addEventListener('click', delExtGroup);
+      el('ext-file-new').addEventListener('click', newExtFile);
+      el('ext-file-new-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') newExtFile(); });
+      el('ext-file-save').addEventListener('click', saveExtFile);
+      el('ext-file-del').addEventListener('click', delExtFile);
 
-    applyHue();
-    syncTheme();
-    applyI18n();
-    updateAuthBadge();
-    // 登录门控：有 token 且验证通过 → 主界面；否则登录视图
-    var t = getToken();
-    if (t) {
-      fetch(API + '/admin/settings', { headers: { 'X-Admin-Token': t } })
-        .then(function (r) { return r.json(); })
-        .then(function (j) {
-          if (j && j.code === 0) { showShell(); }
-          else { setToken(''); showLogin(); }
-        })
-        .catch(function () { showShell(); }); // 网络异常不锁死
-    } else {
+      applyHue();
+      syncTheme();
+      applyI18n();
+      updateAuthBadge();
+      // 登录门控：有 token 且验证通过 → 主界面；否则保持登录视图（默认可见）
+      var t = getToken();
+      if (t) {
+        fetch(API + '/admin/settings', { headers: { 'X-Admin-Token': t } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j && j.code === 0) { showShell(); }
+            else { setToken(''); showLogin(); }
+          })
+          .catch(function () { showShell(); }); // 网络异常不锁死
+      } else {
+        showLogin();
+      }
+    } catch (e) {
+      // 兜底：任何异常（如 HTML/JS 版本不匹配导致元素缺失）都回退登录视图，绝不白屏
       showLogin();
     }
   }

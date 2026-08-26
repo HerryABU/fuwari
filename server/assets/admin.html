@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fuwari 管理后台</title>
 <!-- FRONTEND_STYLES -->
-<!-- 后台 UI 特有样式：运行时 admin/ui.css 动态注入（热加载） -->
-<link rel="stylesheet" href="/admin/ui.css">
+<!-- 后台 UI 特有样式：运行时 admin/ui.css 动态注入（热加载）；v 参数防浏览器缓存旧版导致 JS/HTML 不匹配白屏 -->
+<link rel="stylesheet" href="/admin/ui.css?v=20260826">
 </head>
 <body class="min-h-screen transition">
 
 <!-- ════════════════════════════════════════════════════════════════
-     登录视图（未认证时显示，替代顶部密码输入）
+     登录视图（未认证时显示，替代顶部密码输入）。
+     默认可见：即使脚本加载失败也显示登录卡而非白屏；ui.js 认证通过后再显示主界面。
      ════════════════════════════════════════════════════════════════ -->
-<div id="login-view" class="hidden">
+<div id="login-view">
   <div class="fw-login-wrap">
     <div class="card-base fw-login-card onload-animation">
       <div class="fw-login-icon">✒️</div>
@@ -335,6 +336,6 @@
 </div><!-- /#admin-shell -->
 
 <script src="/assets/cherry/cherry-markdown.core.js"></script>
-<script src="/admin/ui.js"></script>
+<script src="/admin/ui.js?v=20260826"></script>
 </body>
 </html>
