@@ -111,6 +111,14 @@ func main() {
 		// 站点设置（alist 风格自定义注入 + 前台主题切换开关）
 		admin.GET("/admin/settings", handlers.GetSiteSettings)
 		admin.POST("/admin/settings", security.RateLimit(10, 60), handlers.UpdateSiteSettings)
+		// 扩展分组管理（后台可视化编辑，克隆/多文件）
+		admin.GET("/admin/extensions", handlers.ListAdminExtensions)
+		admin.POST("/admin/extensions", security.RateLimit(10, 60), handlers.CreateExtension)
+		admin.POST("/admin/extensions/clone", security.RateLimit(10, 60), handlers.CloneExtension)
+		admin.DELETE("/admin/extensions/:name", handlers.DeleteExtension)
+		admin.GET("/admin/extensions/:name/:file", handlers.GetExtensionFile)
+		admin.PUT("/admin/extensions/:name/:file", handlers.UpdateExtensionFile)
+		admin.DELETE("/admin/extensions/:name/:file", handlers.DeleteExtensionFile)
 		// 编辑器图片上传
 		admin.POST("/admin/upload", security.RateLimit(30, 60), handlers.UploadImage)
 	}
@@ -592,12 +600,15 @@ func injectPageAssets(html []byte, c *gin.Context) []byte {
 		}
 		bodyJS.WriteString(extInjection)
 	}
-	// 评论挂件 —— 已注入则跳过
-	if !strings.Contains(s, "/assets/comments.js") {
-		if bodyJS.Len() > 0 {
-			bodyJS.WriteString("\n")
+	// 评论挂件 + 动态文章查看器 —— 仅前台页面注入。
+	// 后台/编辑器不注入：post-viewer 会把前台文章列表渲染进后台页面底部（见 bug 修复）。
+	if !isAdminPage {
+		if !strings.Contains(s, "/assets/comments.js") {
+			if bodyJS.Len() > 0 {
+				bodyJS.WriteString("\n")
+			}
+			bodyJS.WriteString(commentWidgetSnippet)
 		}
-		bodyJS.WriteString(commentWidgetSnippet)
 	}
 	if siteBody != "" {
 		if bodyJS.Len() > 0 {

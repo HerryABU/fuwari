@@ -10,6 +10,10 @@
 (function () {
   'use strict';
   var fwBase = window.FUWARI_BASE || '/';
+  // 兜底防护：后台/编辑器页面不执行（服务端已不注入，双保险防止底部渲染文章列表）
+  if (window.location.pathname.indexOf('/admin') !== -1 || window.location.pathname.indexOf('/editor') !== -1) {
+    return;
+  }
   var postRe = /\/posts\/(.+?)\/?$/;
   var m = window.location.pathname.match(postRe);
 

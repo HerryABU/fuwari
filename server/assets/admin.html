@@ -11,6 +11,30 @@
 <body class="min-h-screen transition">
 
 <!-- ════════════════════════════════════════════════════════════════
+     登录视图（未认证时显示，替代顶部密码输入）
+     ════════════════════════════════════════════════════════════════ -->
+<div id="login-view" class="hidden">
+  <div class="fw-login-wrap">
+    <div class="card-base fw-login-card onload-animation">
+      <div class="fw-login-icon">✒️</div>
+      <div class="fw-login-title">Fuwari Admin</div>
+      <div class="fw-login-sub" data-i18n="siteRole">管理控制台</div>
+      <div class="flex flex-col gap-3 mt-6">
+        <input id="login-pwd" type="password" class="fw-input w-full" data-i18n-ph="pwdOld" placeholder="管理员密码" autocomplete="current-password">
+        <div id="login-msg" class="text-sm min-h-[1.2rem] text-center"></div>
+        <button id="login-btn" class="btn-regular rounded-lg h-11 font-bold text-sm active:scale-95 transition" data-i18n="loginBtn">登 录</button>
+      </div>
+      <div class="text-center text-xs mt-5 fw-login-sub" data-i18n="loginTip">使用管理员密码登录后进入管理后台</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     管理后台主界面（登录后显示）
+     ════════════════════════════════════════════════════════════════ -->
+<div id="admin-shell" class="hidden">
+
+<!-- ════════════════════════════════════════════════════════════════
      顶部导航：完全复刻前台 Navbar
      card-base 圆角条 + btn-plain scale-animation 导航 + 控件组
      ════════════════════════════════════════════════════════════════ -->
@@ -35,34 +59,21 @@
         <a href="/admin/system" data-tab="system" class="fw-tab" data-i18n="tabSystem">ℹ️ 系统</a>
       </nav>
 
-      <!-- 桌面控件（复刻前台搜索框 + LightDarkSwitch 语言） -->
+      <!-- 桌面控件（LightDarkSwitch 语言；登录走独立登录视图，顶部不再放密码框） -->
       <div class="fw-desktop items-center gap-2 shrink-0">
-        <div class="flex items-center h-11 rounded-lg bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06] dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10">
-          <span class="pl-3 text-sm pointer-events-none text-black/30 dark:text-white/30">🔑</span>
-          <input id="token" type="password" placeholder="管理员密码" autocomplete="off"
-                 class="pl-2 pr-3 text-sm bg-transparent outline-0 h-full transition-all text-black/50 dark:text-white/50">
-        </div>
         <select id="theme-switch" class="fw-select" title="切换主题"></select>
         <select id="lang-switch" class="fw-select">
           <option value="zh">中文</option>
           <option value="en">EN</option>
         </select>
         <button id="scheme-switch" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" title="切换深浅色" aria-label="Display Mode">🌓</button>
+        <button id="logout-btn" class="btn-plain scale-animation rounded-lg h-11 px-3 font-bold text-sm active:scale-95" title="退出登录" data-i18n="logout">🚪 退出</button>
       </div>
 
       <!-- 移动控件 -->
       <div class="fw-mobile items-center gap-1 shrink-0">
-        <button id="admin-switch" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" aria-label="Admin Token">🔑</button>
         <button id="scheme-switch-m" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" aria-label="Display Mode">🌓</button>
         <button id="nav-menu-switch" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" aria-label="Menu">☰</button>
-      </div>
-
-      <!-- 移动端：管理员认证面板（float-panel 语言） -->
-      <div id="admin-panel" class="float-panel float-panel-closed fw-panel-pos fw-panel-auth absolute p-3 z-50 shadow-2xl">
-        <div class="font-bold text-sm text-90 mb-2">🔑 管理员认证</div>
-        <input id="token-m" type="password" placeholder="管理员密码" class="fw-input w-full mb-2" autocomplete="off">
-        <div id="status-m" class="text-xs text-50 mb-1"></div>
-        <button id="token-ok" class="btn-regular rounded-lg h-10 w-full font-bold text-sm active:scale-95 transition">保存</button>
       </div>
 
       <!-- 移动端：导航面板（前台 NavMenuPanel 语言） -->
@@ -83,6 +94,7 @@
             <option value="en">EN</option>
           </select>
         </div>
+        <button id="logout-btn-m" class="fw-tab fw-tab-block mt-1" data-i18n="logout">🚪 退出登录</button>
       </div>
     </div>
   </div>
@@ -249,6 +261,41 @@
             <p class="text-sm text-75 px-1 mb-3" data-i18n="extTip">扩展位于 extensions/&lt;名称&gt;/ 目录（index.js / index.css），自动注入所有页面，修改后刷新即生效。</p>
             <div id="ext-list" class="px-1 flex flex-col gap-2"></div>
           </div>
+          <div class="card-base p-5 onload-animation" style="animation-delay:180ms">
+            <div class="widget-title" data-i18n="grpTitle">🧩 分组管理（主题脚本 / 小控件 / 看板娘）</div>
+            <p class="text-sm text-75 px-1 mb-3" data-i18n="grpTip">每个分组 = extensions/&lt;名称&gt;/ 目录，组内可含多个文件（js / css / html / 资源），index.js 与 index.css 自动注入所有页面；可克隆分组。</p>
+            <div class="fw-ext-admin">
+              <div class="fw-ext-side">
+                <div class="flex gap-2 mb-2">
+                  <input id="ext-new-name" class="fw-input fw-grow" data-i18n-ph="grpNamePh" placeholder="新分组名（如 widget-xxx）">
+                  <button id="ext-new" class="btn-regular rounded-lg h-11 px-3 font-bold text-sm active:scale-95 transition" data-i18n="grpNew">新建</button>
+                </div>
+                <div id="ext-group-list" class="flex flex-col gap-1"></div>
+              </div>
+              <div class="fw-ext-main">
+                <div id="ext-file-empty" class="empty-tip" data-i18n="grpEmpty">选择左侧分组进行编辑，或新建分组</div>
+                <div id="ext-file-editor" class="hidden">
+                  <div class="flex items-center gap-2 mb-2 flex-wrap">
+                    <span class="font-bold text-sm" id="ext-cur-name"></span>
+                    <span class="badge" id="ext-cur-files"></span>
+                    <div id="ext-file-tabs" class="flex gap-1 flex-wrap"></div>
+                    <button id="ext-clone" class="fw-btn-ghost btn-mini" data-i18n="grpClone">克隆</button>
+                    <button id="ext-del-group" class="fw-btn-danger rounded-lg h-9 px-3 text-sm ml-auto" data-i18n="grpDel">删除分组</button>
+                  </div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <input id="ext-file-new-name" class="fw-input fw-grow" data-i18n-ph="fileNewPh" placeholder="新文件名（如 widget.js / style.css / note.html）">
+                    <button id="ext-file-new" class="btn-regular rounded-lg h-11 px-3 font-bold text-sm active:scale-95 transition" data-i18n="fileNew">＋ 文件</button>
+                  </div>
+                  <textarea id="ext-file-content" class="fw-input w-full fw-code-input" style="min-height:16rem"></textarea>
+                  <div class="flex items-center gap-3 mt-2">
+                    <button id="ext-file-save" class="btn-regular rounded-lg h-11 px-6 font-bold text-sm active:scale-95 transition" data-i18n="fileSave">保存</button>
+                    <button id="ext-file-del" class="fw-btn-danger rounded-lg h-9 px-4 text-sm" data-i18n="fileDel">删除文件</button>
+                    <span id="ext-file-msg" class="text-sm text-50"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ═══════ 子页面：密码 ═══════ -->
@@ -284,6 +331,8 @@
     </main>
   </div>
 </div>
+
+</div><!-- /#admin-shell -->
 
 <script src="/assets/cherry/cherry-markdown.core.js"></script>
 <script src="/admin/ui.js"></script>

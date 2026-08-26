@@ -59,11 +59,15 @@
       setSave: '保存设置', settingsSaved: '✅ 站点设置已保存，刷新页面生效',
       extTitle: '🧸 扩展（小控件 / 看板娘等）', extTip: '扩展位于 extensions/<名称>/ 目录（index.js / index.css），自动注入所有页面，修改后刷新即生效。',
       extActive: '已启用', extEmpty: '暂无扩展 — 将 index.js / index.css 放入 extensions/<名称>/ 即可',
+      grpTitle: '🧩 分组管理（主题脚本 / 小控件 / 看板娘）', grpTip: '每个分组 = extensions/<名称>/ 目录，组内可含多个文件（js / css / html / 资源），index.js 与 index.css 自动注入所有页面；可克隆分组。',
+      grpNew: '新建', grpNamePh: '新分组名（如 widget-xxx）', grpNeedName: '请输入分组名', grpCreated: '✅ 分组已创建', grpClone: '克隆', grpCloneName: '新分组名：', grpCloned: '✅ 分组已克隆', grpDel: '删除分组', grpDelConfirm: '确定删除分组', grpEmpty: '选择左侧分组进行编辑，或新建分组', grpNoFile: '该分组暂无文件，可在下方新建',
+      fileNew: '＋ 文件', fileNewPh: '新文件名（如 widget.js / style.css / note.html）', fileNeedName: '请输入文件名', fileCreated: '✅ 文件已创建', fileSave: '保存', fileDel: '删除文件', fileDelConfirm: '确定删除文件',
       systemTitle: 'ℹ️ 系统信息', aboutTitle: '🍥 关于', aboutTip: 'Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。',
       draftTag: '草稿', saved: '已保存', deleted: '已删除', loadFail: '加载失败', uploadFail: '上传失败', networkErr: '网络错误，请重试',
       newMode: '新文章模式：保存后自动生成 slug', needTitle: '请填写标题', needToken: '请先填写管理员密码', noSelection: '未选择文章',
       pwdEnter: '请输入当前密码', pwdShort: '新密码至少 6 个字符', pwdMismatch: '两次输入的新密码不一致', pwdOk: '✅ 密码已修改，请使用新密码', pwdFail: '修改失败',
       themeSwitch: '切换主题', tokenSaved: '✅ 管理员密码已保存', authOk: '🔓 已认证', authNo: '🔒 未认证', confirmDelete: '确定删除',
+      loginBtn: '登 录', loginTip: '使用管理员密码登录后进入管理后台', loginFail: '密码错误，请重试', logout: '🚪 退出登录', loggedOut: '已退出登录',
       langLabel: '语言'
     },
     en: {
@@ -87,11 +91,15 @@
       setSave: 'Save Settings', settingsSaved: '✅ Settings saved — refresh to apply',
       extTitle: '🧸 Extensions (widgets / mascot etc.)', extTip: 'Extensions live in extensions/<name>/ (index.js / index.css), auto-injected into every page, refresh to apply.',
       extActive: 'Active', extEmpty: 'No extensions — drop index.js / index.css into extensions/<name>/',
+      grpTitle: '🧩 Groups (theme scripts / widgets / mascot)', grpTip: 'Each group = extensions/<name>/ dir, may contain multiple files (js / css / html / assets); index.js & index.css auto-inject into every page; groups can be cloned.',
+      grpNew: 'New', grpNamePh: 'Group name (e.g. widget-xxx)', grpNeedName: 'Enter a group name', grpCreated: '✅ Group created', grpClone: 'Clone', grpCloneName: 'New group name:', grpCloned: '✅ Group cloned', grpDel: 'Delete Group', grpDelConfirm: 'Delete group', grpEmpty: 'Select a group on the left to edit, or create one', grpNoFile: 'No files yet — create one below',
+      fileNew: '＋ File', fileNewPh: 'File name (e.g. widget.js / style.css / note.html)', fileNeedName: 'Enter a file name', fileCreated: '✅ File created', fileSave: 'Save', fileDel: 'Delete File', fileDelConfirm: 'Delete file',
       systemTitle: 'ℹ️ System Info', aboutTitle: '🍥 About', aboutTip: 'A Go-backend blog system with an embedded Astro frontend. The admin UI shares the exact same styles and theme variables as the frontend.',
       draftTag: 'Draft', saved: 'Saved', deleted: 'Deleted', loadFail: 'Load failed', uploadFail: 'Upload failed', networkErr: 'Network error, please retry',
       newMode: 'New post mode: slug is auto-generated on save', needTitle: 'Please fill in the title', needToken: 'Please enter the admin password first', noSelection: 'No post selected',
       pwdEnter: 'Enter the current password', pwdShort: 'New password must be at least 6 characters', pwdMismatch: 'The two passwords do not match', pwdOk: '✅ Password updated, use the new one', pwdFail: 'Change failed',
       themeSwitch: 'Switch theme', tokenSaved: '✅ Admin password saved', authOk: '🔓 Authed', authNo: '🔒 Not authed', confirmDelete: 'Delete',
+      loginBtn: 'Sign In', loginTip: 'Sign in with the admin password to enter the console', loginFail: 'Wrong password, please retry', logout: '🚪 Sign Out', loggedOut: 'Signed out',
       langLabel: 'Language'
     }
   };
@@ -120,15 +128,13 @@
     }, 2600);
   }
 
-  /* ---------- 认证 ---------- */
+  /* ---------- 认证（登录视图 / 退出；token 存 localStorage） ---------- */
   function getToken() {
     return localStorage.getItem(TOKEN_KEY) || '';
   }
   function setToken(v) {
     var s = String(v || '').trim();
     if (s) localStorage.setItem(TOKEN_KEY, s); else localStorage.removeItem(TOKEN_KEY);
-    var a = el('token'); if (a && a.value !== s) a.value = s;
-    var m = el('token-m'); if (m && m.value !== s) m.value = s;
     updateAuthBadge();
   }
   function updateAuthBadge() {
@@ -138,6 +144,44 @@
     b.textContent = ok ? '🔓' : '🔒';
     b.classList.toggle('badge-ok', ok);
     b.title = ok ? T('authOk') : T('authNo');
+  }
+  /* 登录流程：无有效 token → 显示登录视图；验证通过 → 显示主界面 */
+  function showLogin() {
+    var lv = el('login-view'); if (lv) lv.classList.remove('hidden');
+    var sh = el('admin-shell'); if (sh) sh.classList.add('hidden');
+    var p = el('login-pwd'); if (p) setTimeout(function () { p.focus(); }, 60);
+  }
+  function showShell() {
+    var lv = el('login-view'); if (lv) lv.classList.add('hidden');
+    var sh = el('admin-shell'); if (sh) sh.classList.remove('hidden');
+    updateAuthBadge();
+    loadThemes();
+    activateView(resolveView());
+  }
+  function doLogin() {
+    var p = (el('login-pwd').value || '').trim();
+    var msg = el('login-msg');
+    if (msg) msg.textContent = '';
+    if (!p) { if (msg) msg.textContent = T('pwdEnter'); return; }
+    setToken(p);
+    // 用受保护的 GET 接口验证凭据（写接口前统一走 AdminAuth）
+    fetch(API + '/admin/settings', { headers: { 'X-Admin-Token': p } })
+      .then(handleRes)
+      .then(function () {
+        if (msg) msg.textContent = '';
+        toast(T('authOk'));
+        showShell();
+      })
+      .catch(function (e) {
+        setToken('');
+        if (msg) msg.textContent = e.needToken ? T('loginFail') : (e.message || T('loginFail'));
+      });
+  }
+  function doLogout() {
+    setToken('');
+    var p = el('login-pwd'); if (p) p.value = '';
+    showLogin();
+    toast(T('loggedOut'));
   }
   function authHeaders(extra) {
     var h = { 'Content-Type': 'application/json', 'X-Admin-Token': getToken() };
@@ -294,9 +338,10 @@
         var b = el('set-body-html'); if (b) b.value = s.body_html || '';
         var c = el('set-global-css'); if (c) c.value = s.global_css || '';
         renderExtList(d.extensions || []);
+        loadExtGroups();
       })
       .catch(function (e) {
-        if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+        if (e.needToken) { toast(T('needToken'), true); showLogin(); }
         else toast(e.message, true);
       });
   }
@@ -314,7 +359,7 @@
       .then(handleRes)
       .then(function () { toast(T('settingsSaved')); })
       .catch(function (e) {
-        if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+        if (e.needToken) { toast(T('needToken'), true); showLogin(); }
         else toast(e.message, true);
       });
   }
@@ -331,6 +376,140 @@
         '<div class="ct">extensions/' + escapeHtml(n) + '/index.js|css → 注入所有页面</div>';
       box.appendChild(item);
     });
+  }
+
+  /* ---------- 扩展分组管理（主题脚本 / 小控件 / 看板娘，克隆/多文件） ---------- */
+  var extGroups = [];
+  var extCurGroup = null;
+  var extCurFile = null;
+
+  function loadExtGroups(selectName) {
+    fetch(API + '/admin/extensions', { headers: { 'X-Admin-Token': getToken() } })
+      .then(handleRes)
+      .then(function (d) {
+        extGroups = d.groups || [];
+        renderExtGroups(selectName);
+      })
+      .catch(function (e) {
+        if (e.needToken) { toast(T('needToken'), true); showLogin(); }
+        else toast(e.message, true);
+      });
+  }
+  function renderExtGroups(selectName) {
+    var box = el('ext-group-list');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!extGroups.length) { box.innerHTML = '<div class="empty-tip">' + T('extEmpty') + '</div>'; return; }
+    extGroups.forEach(function (g) {
+      var btn = document.createElement('button');
+      btn.className = 'fw-ext-group' + (g.name === extCurGroup ? ' active' : '');
+      btn.innerHTML = '🧩 <span class="truncate">' + escapeHtml(g.name) + '</span><span class="fc">' + (g.files || []).length + '</span>';
+      btn.onclick = function () { selectExtGroup(g.name); };
+      box.appendChild(btn);
+    });
+    if (selectName) selectExtGroup(selectName);
+  }
+  function selectExtGroup(name) {
+    extCurGroup = name;
+    extCurFile = null;
+    el('ext-cur-name').textContent = name;
+    renderExtGroups();
+    var g = null;
+    extGroups.forEach(function (x) { if (x.name === name) g = x; });
+    var files = g ? (g.files || []) : [];
+    el('ext-cur-files').textContent = files.length + ' 文件';
+    // 文件 tabs（index.js / index.css 优先）
+    var tabs = el('ext-file-tabs');
+    tabs.innerHTML = '';
+    var ordered = files.slice().sort(function (a, b) {
+      var ai = a.is_index ? 0 : 1, bi = b.is_index ? 0 : 1;
+      return ai - bi || (a.name < b.name ? -1 : 1);
+    });
+    ordered.forEach(function (f) {
+      var tb = document.createElement('button');
+      tb.className = 'fw-ext-tab' + (f.name === extCurFile ? ' active' : '');
+      tb.textContent = f.name + (f.is_index ? ' ★' : '');
+      tb.onclick = function () { selectExtFile(f.name); };
+      tabs.appendChild(tb);
+    });
+    el('ext-file-editor').classList.remove('hidden');
+    el('ext-file-empty').classList.add('hidden');
+    // 默认选中第一个文件
+    if (ordered.length) selectExtFile(ordered[0].name);
+    else { el('ext-file-content').value = ''; extCurFile = null; el('ext-file-msg').textContent = T('grpNoFile'); }
+  }
+  function selectExtFile(file) {
+    extCurFile = file;
+    Array.prototype.forEach.call(el('ext-file-tabs').children, function (b) {
+      b.classList.toggle('active', b.textContent.indexOf(file) === 0);
+    });
+    fetch(API + '/admin/extensions/' + encodeURIComponent(extCurGroup) + '/' + encodeURIComponent(file), { headers: { 'X-Admin-Token': getToken() } })
+      .then(handleRes)
+      .then(function (d) { el('ext-file-content').value = d.content || ''; el('ext-file-msg').textContent = file; })
+      .catch(function (e) { el('ext-file-msg').textContent = e.message || T('loadFail'); });
+  }
+  function saveExtFile() {
+    if (!extCurGroup || !extCurFile) return;
+    fetch(API + '/admin/extensions/' + encodeURIComponent(extCurGroup) + '/' + encodeURIComponent(extCurFile), {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({ content: el('ext-file-content').value }),
+    })
+      .then(handleRes)
+      .then(function () { el('ext-file-msg').textContent = T('saved') + ': ' + extCurFile; toast(T('saved')); })
+      .catch(function (e) { el('ext-file-msg').textContent = e.message || T('loadFail'); });
+  }
+  function newExtGroup() {
+    var n = (el('ext-new-name').value || '').trim();
+    if (!n) { toast(T('grpNeedName'), true); return; }
+    fetch(API + '/admin/extensions', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ name: n }) })
+      .then(handleRes)
+      .then(function () { el('ext-new-name').value = ''; toast(T('grpCreated')); loadExtGroups(n); })
+      .catch(function (e) { toast(e.message || T('loadFail'), true); });
+  }
+  function cloneExtGroup() {
+    if (!extCurGroup) return;
+    var n = prompt(T('grpCloneName'), extCurGroup + '-copy');
+    if (!n || !n.trim()) return;
+    fetch(API + '/admin/extensions/clone', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ source: extCurGroup, target: n.trim() }) })
+      .then(handleRes)
+      .then(function () { toast(T('grpCloned')); loadExtGroups(n.trim()); })
+      .catch(function (e) { toast(e.message || T('loadFail'), true); });
+  }
+  function delExtGroup() {
+    if (!extCurGroup) return;
+    if (!confirm(T('grpDelConfirm') + ' "' + extCurGroup + '"?')) return;
+    fetch(API + '/admin/extensions/' + encodeURIComponent(extCurGroup), { method: 'DELETE', headers: authHeaders() })
+      .then(handleRes)
+      .then(function () {
+        extCurGroup = null; extCurFile = null;
+        el('ext-file-editor').classList.add('hidden');
+        el('ext-file-empty').classList.remove('hidden');
+        toast(T('deleted'));
+        loadExtGroups();
+      })
+      .catch(function (e) { toast(e.message || T('loadFail'), true); });
+  }
+  function newExtFile() {
+    if (!extCurGroup) return;
+    var n = (el('ext-file-new-name').value || '').trim();
+    if (!n) { toast(T('fileNeedName'), true); return; }
+    fetch(API + '/admin/extensions/' + encodeURIComponent(extCurGroup) + '/' + encodeURIComponent(n), {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({ content: '' }),
+    })
+      .then(handleRes)
+      .then(function () { el('ext-file-new-name').value = ''; toast(T('fileCreated')); loadExtGroups(extCurGroup); })
+      .catch(function (e) { toast(e.message || T('loadFail'), true); });
+  }
+  function delExtFile() {
+    if (!extCurGroup || !extCurFile) return;
+    if (!confirm(T('fileDelConfirm') + ' "' + extCurFile + '"?')) return;
+    fetch(API + '/admin/extensions/' + encodeURIComponent(extCurGroup) + '/' + encodeURIComponent(extCurFile), { method: 'DELETE', headers: authHeaders() })
+      .then(handleRes)
+      .then(function () { toast(T('deleted')); loadExtGroups(extCurGroup); })
+      .catch(function (e) { toast(e.message || T('loadFail'), true); });
   }
 
   /* ---------- 文章 ---------- */
@@ -419,7 +598,7 @@
         loadList();
       })
       .catch(function (e) {
-        if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+        if (e.needToken) { toast(T('needToken'), true); showLogin(); }
         else toast(e.message, true);
       });
   }
@@ -435,7 +614,7 @@
         loadList();
       })
       .catch(function (e) {
-        if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+        if (e.needToken) { toast(T('needToken'), true); showLogin(); }
         else toast(e.message, true);
       });
   }
@@ -499,7 +678,7 @@
               .then(handleRes)
               .then(function () { toast(T('deleted')); loadComments(); })
               .catch(function (e) {
-                if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+                if (e.needToken) { toast(T('needToken'), true); showLogin(); }
                 else toast(e.message, true);
               });
           };
@@ -566,10 +745,6 @@
     var p = el(id);
     if (p) p.classList.toggle('float-panel-closed');
   }
-  function openAdminPanel() {
-    el('admin-panel').classList.remove('float-panel-closed');
-    var m = el('token-m'); if (m) m.focus();
-  }
   function bindClickOutside(panelId, ignoreIds) {
     document.addEventListener('click', function (e) {
       var panel = el(panelId);
@@ -590,20 +765,15 @@
 
   /* ---------- init ---------- */
   function init() {
-    // 认证
+    // 认证：登录视图 / 退出
+    el('login-btn').addEventListener('click', doLogin);
+    el('login-pwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+    el('logout-btn').addEventListener('click', doLogout);
+    el('logout-btn-m').addEventListener('click', doLogout);
     setToken(getToken());
-    el('token').addEventListener('change', function () { setToken(this.value); });
-    el('token-m').addEventListener('keydown', function (e) { if (e.key === 'Enter') el('token-ok').click(); });
-    el('token-ok').addEventListener('click', function () {
-      setToken(el('token-m').value);
-      toast(T('tokenSaved'));
-      el('admin-panel').classList.add('float-panel-closed');
-    });
 
     // 浮层面板
-    el('admin-switch').addEventListener('click', function (e) { e.stopPropagation(); togglePanel('admin-panel'); });
     el('nav-menu-switch').addEventListener('click', function (e) { e.stopPropagation(); togglePanel('nav-menu-panel'); });
-    bindClickOutside('admin-panel', ['admin-panel', 'admin-switch']);
     bindClickOutside('nav-menu-panel', ['nav-menu-panel', 'nav-menu-switch']);
 
     // 深浅色（桌面 + 移动）
@@ -637,13 +807,33 @@
     el('f-title').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el('f-category').focus(); } });
     // 站点设置
     el('set-save').addEventListener('click', saveSettings);
+    // 扩展分组管理
+    el('ext-new').addEventListener('click', newExtGroup);
+    el('ext-new-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') newExtGroup(); });
+    el('ext-clone').addEventListener('click', cloneExtGroup);
+    el('ext-del-group').addEventListener('click', delExtGroup);
+    el('ext-file-new').addEventListener('click', newExtFile);
+    el('ext-file-new-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') newExtFile(); });
+    el('ext-file-save').addEventListener('click', saveExtFile);
+    el('ext-file-del').addEventListener('click', delExtFile);
 
     applyHue();
     syncTheme();
     applyI18n();
     updateAuthBadge();
-    loadThemes();
-    activateView(resolveView());
+    // 登录门控：有 token 且验证通过 → 主界面；否则登录视图
+    var t = getToken();
+    if (t) {
+      fetch(API + '/admin/settings', { headers: { 'X-Admin-Token': t } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.code === 0) { showShell(); }
+          else { setToken(''); showLogin(); }
+        })
+        .catch(function () { showShell(); }); // 网络异常不锁死
+    } else {
+      showLogin();
+    }
   }
 
   if (document.readyState === 'loading') {
