@@ -1,0 +1,45 @@
+/* Ocean 示例主题 —— 运行时热加载，无需重新编译。
+ *
+ * 覆盖 fuwari 的 CSS 变量（亮色 :root 与暗色 :root.dark 两套）。
+ * 注意：fuwari 原版 Layout 会用内联样式设置 --hue，因此主题变量必须用
+ * `!important` 才能压过内联样式（author !important > inline without !important）。
+ * 修改本文件后刷新页面即可生效；主题切换：URL ?theme=ocean 或 Cookie fuwari_theme=ocean。
+ */
+:root {
+	--hue: 200 !important; /* 海洋蓝 */
+	--primary: oklch(0.62 0.14 var(--hue)) !important;
+	--page-bg: oklch(0.96 0.015 var(--hue)) !important;
+	--card-bg: oklch(0.99 0.005 var(--hue)) !important;
+	--deep-text: oklch(0.28 0.03 var(--hue)) !important;
+	--line-color: rgba(20, 60, 90, 0.10) !important;
+	--selection-bg: oklch(0.88 0.06 var(--hue)) !important;
+}
+
+:root.dark {
+	--hue: 210 !important;
+	--primary: oklch(0.72 0.12 var(--hue)) !important;
+	--page-bg: oklch(0.15 0.02 var(--hue)) !important;
+	--card-bg: oklch(0.20 0.025 var(--hue)) !important;
+	--deep-text: oklch(0.92 0.02 var(--hue)) !important;
+	--line-color: rgba(180, 210, 235, 0.10) !important;
+	--selection-bg: oklch(0.38 0.08 var(--hue)) !important;
+}
+
+/* 站点级自定义样式（可随意扩展） */
+::selection {
+	background: var(--selection-bg);
+}
+
+/* 全站背景图（可选：把 background.jpg/png 放到本主题目录，
+ * 并在 body 中引用 background-image: url(./background.png)） */
+body {
+	background-attachment: fixed;
+	background-size: cover;
+}
+
+/* 后台 /editor 与前台一致：编辑器控件跟随主题变量 */
+#editor .cherry {
+	--fill-color: var(--card-bg) !important;
+	--text-color: var(--deep-text) !important;
+	--border-color: var(--line-color) !important;
+}

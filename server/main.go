@@ -38,6 +38,11 @@ func main() {
 		log.Fatalf("内容目录初始化失败: %v", err)
 	}
 
+	// 确保主题/扩展运行时目录存在，并补充默认主题模板
+	_ = os.MkdirAll(config.ThemesDir, 0755)
+	_ = os.MkdirAll(config.ExtensionsDir, 0755)
+	seedThemesAndExtensions()
+
 	// 初始化数据库
 	if err := models.InitDatabase(); err != nil {
 		log.Fatalf("数据库初始化失败: %v", err)
@@ -47,6 +52,9 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
+
+	// 注入内嵌 assets FS（主题默认兜底资源）
+	handlers.EmbeddedAssetsFS = assetsFS
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
@@ -67,9 +75,13 @@ func main() {
 	r.GET("/api/posts", handlers.ListPosts)
 	r.GET("/api/posts/:slug", handlers.GetPost)
 	r.GET("/api/posts/:slug/raw", handlers.GetPostRaw)
+	r.GET("/api/themes", handlers.ListThemes)
 
 	// 评论发表对读者开放（限流 + 内容净化，见 security.SanitizeMarkdown）
 	r.POST("/api/comments", security.RateLimit(10, 60), handlers.CreateComment)
+
+	// 主题切换（写入 Cookie，持久化）
+	r.POST("/api/theme", handlers.SetTheme)
 
 	// 管理令牌保护
 	admin := r.Group("/api")
@@ -80,6 +92,11 @@ func main() {
 		admin.PUT("/posts/:slug", handlers.UpdatePost)
 		admin.DELETE("/posts/:slug", handlers.DeletePost)
 	}
+
+	// 主题静态资源（运行时优先，嵌入默认兜底）
+	r.GET("/themes/:name/*filepath", handlers.ServeThemeAsset)
+	// 扩展静态资源（运行时热加载）
+	r.GET("/extensions/:name/*filepath", handlers.ServeExtensionAsset)
 
 	// 静态资源挂载：/static/* -> /_astro 等构建产物别名（见 NoRoute）
 
@@ -108,14 +125,16 @@ func main() {
 			return
 		}
 		// 文章管理编辑器（独立页面，令牌经弹窗输入，不改前端源码）
+		// 与前台走同一主题注入，保证前后台 UI 完全一致。
 		if strings.HasPrefix(path, "/editor") {
 			data, err := fs.ReadFile(assetsFS, "assets/editor.html")
 			if err != nil {
 				c.Status(http.StatusNotFound)
 				return
 			}
+			injected := injectPageAssets(data, c)
 			c.Header("Cache-Control", "no-cache")
-			c.Data(http.StatusOK, "text/html; charset=utf-8", data)
+			c.Data(http.StatusOK, "text/html; charset=utf-8", injected)
 			return
 		}
 
@@ -148,11 +167,11 @@ func main() {
 			cleanPath = "index.html"
 		}
 
-		// HTML 页面：解析出实际文件并注入评论挂件
+		// HTML 页面：解析出实际文件并注入页面资产（评论挂件 + 主题 + 扩展）
 		if resolved, ok := resolveFrontendFile(frontendFS, cleanPath); ok && strings.HasSuffix(resolved, ".html") {
 			data, err := fs.ReadFile(frontendFS, resolved)
 			if err == nil {
-				injected := injectCommentWidget(data)
+				injected := injectPageAssets(data, c)
 				if strings.HasPrefix(resolved, "_astro/") {
 					c.Header("Cache-Control", "public, max-age=31536000, immutable")
 				} else {
@@ -177,26 +196,80 @@ func main() {
 
 		// 非资源请求 → 返回 index.html（由 swup 接管页面过渡）
 		if indexContent, err := fs.ReadFile(frontendFS, "index.html"); err == nil {
+			injected := injectPageAssets(indexContent, c)
 			c.Header("Cache-Control", "no-cache")
 			c.Header("Content-Type", "text/html; charset=utf-8")
-			c.Data(http.StatusOK, "text/html; charset=utf-8", indexContent)
+			c.Data(http.StatusOK, "text/html; charset=utf-8", injected)
 			return
 		}
 
 		c.Status(http.StatusNotFound)
 	})
 
-	listenAddr := "0.0.0.0:" + config.ServerPort
+	// IPv4/IPv6 双栈监听（ENABLE_IPV6=true 时监听 [::] 同时接受 IPv4 与 IPv6）
+	var listenAddr string
+	if config.EnableIPv6 {
+		listenAddr = fmt.Sprintf("[%s]:%s", config.BindIPv6, config.ServerPort)
+	} else {
+		listenAddr = fmt.Sprintf("%s:%s", config.BindIPv4, config.ServerPort)
+	}
 	log.Println("========================================")
 	log.Printf("  Fuwari Server v%s", version.AppVersion)
 	log.Printf("  监听地址: %s", listenAddr)
 	log.Println("  博客内容目录:", config.PostsDir)
+	log.Println("  主题目录:", config.ThemesDir)
 	log.Printf("  编辑器入口: http://localhost:%s/editor", config.ServerPort)
 	log.Println("========================================")
 
 	if err := http.ListenAndServe(listenAddr, r); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)
 	}
+}
+
+// seedThemesAndExtensions 从仓库根（exe 父目录）复制默认主题/扩展模板到运行时目录。
+// 主题目录为空时，将 ../themes 下的示例主题复制进来（如 ocean）。
+func seedThemesAndExtensions() {
+	// 种子源：exe 父目录（仓库根）的 themes/ extensions/
+	var repoRoot string
+	if exePath, err := os.Executable(); err == nil {
+		repoRoot = filepath.Dir(exePath)
+	}
+
+	seedTheme := func() {
+		if repoRoot == "" {
+			return
+		}
+		src := filepath.Join(repoRoot, "..", "themes")
+		if info, err := os.Stat(src); err != nil || !info.IsDir() {
+			return
+		}
+		// 仅当运行时主题目录为空时复制
+		entries, err := os.ReadDir(config.ThemesDir)
+		if err != nil || len(entries) > 0 {
+			return
+		}
+		log.Printf("主题目录为空，从模板复制示例主题: %s -> %s", src, config.ThemesDir)
+		_ = copyTree(src, config.ThemesDir)
+	}
+
+	seedExt := func() {
+		if repoRoot == "" {
+			return
+		}
+		src := filepath.Join(repoRoot, "..", "extensions")
+		if info, err := os.Stat(src); err != nil || !info.IsDir() {
+			return
+		}
+		entries, err := os.ReadDir(config.ExtensionsDir)
+		if err != nil || len(entries) > 0 {
+			return
+		}
+		log.Printf("扩展目录为空，从模板复制: %s -> %s", src, config.ExtensionsDir)
+		_ = copyTree(src, config.ExtensionsDir)
+	}
+
+	seedTheme()
+	seedExt()
 }
 
 // locateSrcPosts 定位种子内容目录。
@@ -335,23 +408,52 @@ var commentWidgetSnippet = `
 <script src="/assets/comments.js"></script>
 `
 
-// injectCommentWidget 将评论挂件标签注入 HTML 的 </body> 前。
-// 对所有 HTML 页面注入（脚本内部自行判断是否为文章页），
-// 保证 swup 无刷新导航后挂件脚本持续存在、由 MutationObserver 重新挂载。
-func injectCommentWidget(html []byte) []byte {
-	if strings.Contains(string(html), "/assets/comments.js") {
-		return html // 已注入
-	}
+// injectPageAssets 统一页面注入：评论挂件 + 主题（前后台一致）+ 扩展（看板娘等）。
+// 对所有 HTML 页面注入，保证 swup 无刷新导航后资产持续存在。
+func injectPageAssets(html []byte, c *gin.Context) []byte {
+	themeName := handlers.CurrentThemeName(c)
+	themeCSS := handlers.ThemeHeadInjection(themeName)
+	themeJS := handlers.ThemeBodyInjection(themeName)
+	extInjection := handlers.BuildExtensionInjection()
+
 	s := string(html)
-	idx := strings.LastIndex(s, "</body>")
-	if idx < 0 {
-		idx = strings.LastIndex(s, "</html>")
+
+	// 主题 CSS 注入 <head>（data-fuwari-theme 标记防重复）
+	if themeCSS != "" && !strings.Contains(s, "data-fuwari-theme") {
+		if idx := strings.LastIndex(s, "</head>"); idx >= 0 {
+			s = s[:idx] + themeCSS + s[idx:]
+		}
 	}
-	if idx < 0 {
-		return append(html, []byte(commentWidgetSnippet)...)
+
+	// 主题 JS + 扩展注入 </body> 前
+	var bodyJS strings.Builder
+	if themeJS != "" {
+		bodyJS.WriteString(themeJS)
 	}
-	injected := s[:idx] + commentWidgetSnippet + s[idx:]
-	return []byte(injected)
+	if extInjection != "" {
+		if bodyJS.Len() > 0 {
+			bodyJS.WriteString("\n")
+		}
+		bodyJS.WriteString(extInjection)
+	}
+
+	// 评论挂件（body 前）—— 已注入则跳过
+	if !strings.Contains(s, "/assets/comments.js") {
+		if idx := strings.LastIndex(s, "</body>"); idx >= 0 {
+			s = s[:idx] + commentWidgetSnippet + s[idx:]
+		} else {
+			s += commentWidgetSnippet
+		}
+	}
+
+	if bodyJS.Len() > 0 {
+		if idx := strings.LastIndex(s, "</body>"); idx >= 0 {
+			s = s[:idx] + bodyJS.String() + s[idx:]
+		} else {
+			s += bodyJS.String()
+		}
+	}
+	return []byte(s)
 }
 
 // assetContentType 按扩展名返回 MIME 类型

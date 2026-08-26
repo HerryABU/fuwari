@@ -48,3 +48,6 @@ server/data/
 /content/
 # the server-side runtime working copy as well
 server/content/
+# runtime theme/extension working copies (seeded from root themes/ extensions/ templates)
+server/themes/
+server/extensions/

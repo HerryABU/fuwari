@@ -42,6 +42,26 @@ ADMIN_TOKEN=
 COMMENT_PAGE_SIZE=20
 # 单条评论最大长度（字符）
 COMMENT_MAX_LENGTH=4000
+
+# ==================== 主题系统（运行时热加载，无需重编译） ====================
+# 主题目录：每个子目录为一个主题，包含 theme.css / background.* / custom.js / manifest.json。
+# 修改后刷新页面即可生效；URL ?theme=<name> 或 Cookie fuwari_theme 切换。
+THEMES_DIR=./themes
+# 默认主题（themes 下不存在同名目录时回退到内嵌默认样式）
+DEFAULT_THEME=default
+
+# ==================== 扩展（看板娘等，运行时热加载） ====================
+# 扩展目录：每个子目录为一个扩展，其中的 *.js / *.css 会被注入到所有页面。
+# 例：extensions/live2d/ 放置看板娘资源，无需重新编译即可生效。
+EXTENSIONS_DIR=./extensions
+
+# ==================== 网络 / IPv6 ====================
+# 绑定 IPv4 地址（0.0.0.0 = 所有网卡）
+BIND_IPV4=0.0.0.0
+# 是否启用 IPv6 双栈监听（true/false，true 时监听 [::] 同时接受 IPv4/IPv6）
+ENABLE_IPV6=false
+# IPv6 绑定地址
+BIND_IPV6=::
 `
 
 var (
@@ -62,6 +82,18 @@ var (
 	// 评论
 	CommentPageSize  int
 	CommentMaxLength int
+
+	// 主题系统
+	ThemesDir    string
+	DefaultTheme string
+
+	// 扩展目录
+	ExtensionsDir string
+
+	// 网络 / IPv6
+	BindIPv4   string
+	EnableIPv6 bool
+	BindIPv6   string
 )
 
 // Init 初始化配置：缺 .env 则生成模板，然后加载配置
@@ -88,6 +120,15 @@ func Init() {
 
 	CommentPageSize = envIntOr("COMMENT_PAGE_SIZE", 20)
 	CommentMaxLength = envIntOr("COMMENT_MAX_LENGTH", 4000)
+
+	ThemesDir = envOr("THEMES_DIR", "./themes")
+	DefaultTheme = envOr("DEFAULT_THEME", "default")
+
+	ExtensionsDir = envOr("EXTENSIONS_DIR", "./extensions")
+
+	BindIPv4 = envOr("BIND_IPV4", "0.0.0.0")
+	EnableIPv6 = envOr("ENABLE_IPV6", "false") == "true"
+	BindIPv6 = envOr("BIND_IPV6", "::")
 }
 
 // ensureEnvFile 不存在则根据模板生成 .env
