@@ -147,9 +147,37 @@
   }
   /* 登录流程：无有效 token → 显示登录视图；验证通过 → 显示主界面 */
   function showLogin() {
-    var lv = el('login-view'); if (lv) lv.classList.remove('hidden');
+    var lv = el('login-view');
+    if (!lv) lv = ensureLoginView(); // 旧版 admin.html（无登录视图）动态创建，保证任何版本组合都不白屏
+    if (lv) lv.classList.remove('hidden');
     var sh = el('admin-shell'); if (sh) sh.classList.add('hidden');
     var p = el('login-pwd'); if (p) setTimeout(function () { p.focus(); }, 60);
+  }
+  // 兜底：HTML 未含登录视图时动态注入一个（内联样式，不依赖后台样式表）
+  function ensureLoginView() {
+    var lv = document.getElementById('login-view');
+    if (lv) return lv;
+    lv = document.createElement('div');
+    lv.id = 'login-view';
+    var wrap = 'min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box;';
+    var card = 'width:100%;max-width:22rem;padding:2rem 2rem 1.6rem;background:var(--card-bg,#fff);border-radius:var(--radius-large,1rem);box-shadow:0 16px 40px rgba(0,0,0,.12);box-sizing:border-box;';
+    var inp = 'width:100%;height:2.75rem;padding:0 .85rem;border-radius:.5rem;border:1px solid var(--line-color,#e5e5e5);background:rgba(0,0,0,.04);color:#333;font-size:.875rem;outline:none;box-sizing:border-box;';
+    var btn = 'width:100%;height:2.75rem;border:none;border-radius:.5rem;background:var(--primary,#3b82f6);color:#fff;font-weight:700;font-size:.875rem;cursor:pointer;';
+    lv.innerHTML =
+      '<div style="' + wrap + '">' +
+      '<div style="' + card + '">' +
+      '<div style="font-size:2.6rem;text-align:center">✒️</div>' +
+      '<div style="font-weight:700;font-size:1.3rem;text-align:center;margin-top:.6rem;color:#171717">Fuwari Admin</div>' +
+      '<div style="font-size:.85rem;text-align:center;margin-top:.3rem;color:#999">' + T('siteRole') + '</div>' +
+      '<input id="login-pwd" type="password" placeholder="' + T('pwdOld') + '" autocomplete="current-password" style="' + inp + 'margin-top:1.2rem">' +
+      '<div id="login-msg" style="font-size:.85rem;text-align:center;min-height:1.2rem;margin-top:.4rem;color:#ef4444"></div>' +
+      '<button id="login-btn" style="' + btn + '">' + T('loginBtn') + '</button>' +
+      '</div></div>';
+    document.body.insertBefore(lv, document.body.firstChild);
+    // 补绑定（init 已执行完毕，手动挂上登录事件）
+    el('login-btn').addEventListener('click', doLogin);
+    el('login-pwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+    return lv;
   }
   function showShell() {
     var lv = el('login-view'); if (lv) lv.classList.add('hidden');
