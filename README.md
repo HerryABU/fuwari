@@ -1,119 +1,57 @@
-# 🍥Fuwari  
-![Node.js >= 20](https://img.shields.io/badge/node.js-%3E%3D20-brightgreen) 
-![pnpm >= 9](https://img.shields.io/badge/pnpm-%3E%3D9-blue) 
-[![DeepWiki](https://img.shields.io/badge/DeepWiki-saicaca%2Ffuwari-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAyCAYAAAAnWDnqAAAAAXNSR0IArs4c6QAAA05JREFUaEPtmUtyEzEQhtWTQyQLHNak2AB7ZnyXZMEjXMGeK/AIi+QuHrMnbChYY7MIh8g01fJoopFb0uhhEqqcbWTp06/uv1saEDv4O3n3dV60RfP947Mm9/SQc0ICFQgzfc4CYZoTPAswgSJCCUJUnAAoRHOAUOcATwbmVLWdGoH//PB8mnKqScAhsD0kYP3j/Yt5LPQe2KvcXmGvRHcDnpxfL2zOYJ1mFwrryWTz0advv1Ut4CJgf5uhDuDj5eUcAUoahrdY/56ebRWeraTjMt/00Sh3UDtjgHtQNHwcRGOC98BJEAEymycmYcWwOprTgcB6VZ5JK5TAJ+fXGLBm3FDAmn6oPPjR4rKCAoJCal2eAiQp2x0vxTPB3ALO2CRkwmDy5WohzBDwSEFKRwPbknEggCPB/imwrycgxX2NzoMCHhPkDwqYMr9tRcP5qNrMZHkVnOjRMWwLCcr8ohBVb1OMjxLwGCvjTikrsBOiA6fNyCrm8V1rP93iVPpwaE+gO0SsWmPiXB+jikdf6SizrT5qKasx5j8ABbHpFTx+vFXp9EnYQmLx02h1QTTrl6eDqxLnGjporxl3NL3agEvXdT0WmEost648sQOYAeJS9Q7bfUVoMGnjo4AZdUMQku50McDcMWcBPvr0SzbTAFDfvJqwLzgxwATnCgnp4wDl6Aa+Ax283gghmj+vj7feE2KBBRMW3FzOpLOADl0Isb5587h/U4gGvkt5v60Z1VLG8BhYjbzRwyQZemwAd6cCR5/XFWLYZRIMpX39AR0tjaGGiGzLVyhse5C9RKC6ai42ppWPKiBagOvaYk8lO7DajerabOZP46Lby5wKjw1HCRx7p9sVMOWGzb/vA1hwiWc6jm3MvQDTogQkiqIhJV0nBQBTU+3okKCFDy9WwferkHjtxib7t3xIUQtHxnIwtx4mpg26/HfwVNVDb4oI9RHmx5WGelRVlrtiw43zboCLaxv46AZeB3IlTkwouebTr1y2NjSpHz68WNFjHvupy3q8TFn3Hos2IAk4Ju5dCo8B3wP7VPr/FGaKiG+T+v+TQqIrOqMTL1VdWV1DdmcbO8KXBz6esmYWYKPwDL5b5FA1a0hwapHiom0r/cKaoqr+27/XcrS5UwSMbQAAAABJRU5ErkJggg==)](https://deepwiki.com/saicaca/fuwari)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsaicaca%2Ffuwari.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsaicaca%2Ffuwari?ref=badge_shield&issueType=license)
+# 🍥 Fuwari Server
 
-A static blog template built with [Astro](https://astro.build).
+![Node.js >= 20](https://img.shields.io/badge/node.js-%3E%3D20-brightgreen)
+![pnpm >= 9](https://img.shields.io/badge/pnpm-%3E%3D9-blue)
+![Go >= 1.25](https://img.shields.io/badge/go-%3E%3D1.25-blue)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-red.svg)](LICENSE)
 
-[**🖥️ Live Demo (Vercel)**](https://fuwari.vercel.app)
+A self-contained blog system: **Go backend + embedded Astro frontend in a
+single binary**. Refactored from the
+[Fuwari](https://github.com/saicaca/fuwari) static Astro theme (MIT), keeping
+the original UI pixel-identical while adding a runtime backend.
 
-![Preview Image](https://raw.githubusercontent.com/saicaca/resource/main/fuwari/home.png)
+```text
+fuwari-server.exe   ← one file: frontend + API + SQLite + themes + editor
+```
 
-🌏 README in
-[**中文**](https://github.com/saicaca/fuwari/blob/main/docs/README.zh-CN.md) /
-[**日本語**](https://github.com/saicaca/fuwari/blob/main/docs/README.ja.md) /
-[**한국어**](https://github.com/saicaca/fuwari/blob/main/docs/README.ko.md) /
-[**Español**](https://github.com/saicaca/fuwari/blob/main/docs/README.es.md) /
-[**ไทย**](https://github.com/saicaca/fuwari/blob/main/docs/README.th.md) /
-[**Tiếng Việt**](https://github.com/saicaca/fuwari/blob/main/docs/README.vi.md) /
-[**Bahasa Indonesia**](https://github.com/saicaca/fuwari/blob/main/docs/README.id.md) (Provided by the community and may not always be up-to-date)
+---
 
 ## ✨ Features
 
-- [x] Built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com)
-- [x] Smooth animations and page transitions
-- [x] Light / dark mode
-- [x] Customizable theme colors & banner
-- [x] Responsive design
-- [x] Search functionality with [Pagefind](https://pagefind.app/)
-- [x] [Markdown extended features](https://github.com/saicaca/fuwari?tab=readme-ov-file#-markdown-extended-syntax)
-- [x] Table of contents
-- [x] RSS feed
+**Frontend (original Fuwari theme, untouched)**
+- Astro + Tailwind CSS, light/dark mode, customizable hue & banner
+- Smooth page transitions, responsive design
+- Search with Pagefind, RSS feed, Markdown extended syntax, TOC
 
-## 🚀 Getting Started
+**Backend (Go)**
+- 🗄️ **Comments in SQLite** — readers post freely (per-IP rate limit + XSS
+  sanitization); deletion requires the admin password
+- 📁 **Posts on the file system** — Markdown + YAML frontmatter, seeded from
+  `src/content/posts` on first boot; full CRUD API
+- ✍️ **Cherry Markdown** — `/editor` full article editor + comment widget
+  (renderer & composer) injected into article pages at serve time
+- 🎨 **Runtime theme system** (alist-style) — hot reload, front **and**
+  `/editor` backend share the exact same CSS variables
+- 🧩 **Hot-loadable extensions** — live2d/kanban-musume, analytics, any
+  `index.js`/`index.css`, injected into every page
+- 🔗 **Reverse-proxy sub-path mounting** — works under any `/{name}/` prefix,
+  no hardcoding, no recompiling
+- 🔐 **Admin password** — bcrypt in SQLite; change in `/editor` or reset from
+  the command line (`-re pwd`)
+- 🌐 **IPv6** dual-stack listening (`ENABLE_IPV6=true`)
 
-1. Create your blog repository:
-    - [Generate a new repository](https://github.com/saicaca/fuwari/generate) from this template or fork this repository.
-    - Or run one of the following commands:
-       ```sh
-       npm create fuwari@latest
-       yarn create fuwari
-       pnpm create fuwari@latest
-       bun create fuwari@latest
-       deno run -A npm:create-fuwari@latest
-       ```
-2. To edit your blog locally, clone your repository, run `pnpm install` to install dependencies.
-    - Install [pnpm](https://pnpm.io) `npm install -g pnpm` if you haven't.
-3. Edit the config file `src/config.ts` to customize your blog.
-4. Run `pnpm new-post <filename>` to create a new post and edit it in `src/content/posts/`.
-5. Deploy your blog to Vercel, Netlify, GitHub Pages, etc. following [the guides](https://docs.astro.build/en/guides/deploy/). You need to edit the site configuration in `astro.config.mjs` before deployment.
-
-## 📝 Frontmatter of Posts
-
-```yaml
 ---
-title: My First Blog Post
-published: 2023-09-09
-description: This is the first post of my new Astro blog.
-image: ./cover.jpg
-tags: [Foo, Bar]
-category: Front-end
-draft: false
-lang: jp      # Set only if the post's language differs from the site's language in `config.ts`
----
-```
 
-## 🧩 Markdown Extended Syntax
+## 🚀 Quick Start
 
-In addition to Astro's default support for [GitHub Flavored Markdown](https://github.github.com/gfm/), several extra Markdown features are included:
-
-- Admonitions ([Preview and Usage](https://fuwari.vercel.app/posts/markdown-extended/#admonitions))
-- GitHub repository cards ([Preview and Usage](https://fuwari.vercel.app/posts/markdown-extended/#github-repository-cards))
-- Enhanced code blocks with Expressive Code ([Preview](https://fuwari.vercel.app/posts/expressive-code/) / [Docs](https://expressive-code.com/))
-
-## ⚡ Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                    | Action                                              |
-|:---------------------------|:----------------------------------------------------|
-| `pnpm install`             | Installs dependencies                               |
-| `pnpm dev`                 | Starts local dev server at `localhost:4321`         |
-| `pnpm build`               | Build your production site to `./dist/`             |
-| `pnpm preview`             | Preview your build locally, before deploying        |
-| `pnpm check`               | Run checks for errors in your code                  |
-| `pnpm format`              | Format your code using Biome                        |
-| `pnpm new-post <filename>` | Create a new post                                   |
-| `pnpm astro ...`           | Run CLI commands like `astro add`, `astro check`    |
-| `pnpm astro --help`        | Get help using the Astro CLI                        |
-| `build.bat`                | Build the full stack: Astro frontend → Go backend (single exe) |
-
-## 🐹 Go Backend (fuwari-server)
-
-This repository has been refactored from a static Astro template into a
-self-contained blog system with a Go backend, mirroring the architecture of
-the [NVS](https://github.com/HerryABU/nvs-community-web) project:
-
-- **Blog content is stored on the file system** — Markdown files with YAML
-  frontmatter in a runtime content directory (`content/posts`, seeded from
-  `src/content/posts` on first run).
-- **Comments are stored in a database** — SQLite via GORM
-  (`data/fuwari.db`); comment posting is open to readers (rate-limited +
-  sanitized), deletion requires the admin token.
-- **Cherry Markdown is integrated as the Markdown renderer/editor** —
-  a standalone article editor at `/editor` (full Cherry editor, token-gated),
-  and a comment widget injected into article pages at serve time (Cherry
-  renders comments and powers the comment composer). Frontend sources are
-  untouched — visual/behavior/structure of the original theme is preserved.
-- **Single binary** — the Astro build output is embedded into the Go server
-  (`server/dist`), so `fuwari-server.exe` serves the whole site.
-
-### Build
+### Build (Windows)
 
 ```bat
 build.bat
 ```
+
+This runs `pnpm install → pnpm build → sync dist → go build`, producing
+`fuwari-server.exe` (frontend embedded via `go:embed`).
 
 Or manually:
 
@@ -131,32 +69,33 @@ fuwari-server.exe
 ```
 
 - Site: <http://localhost:9000>
-- Editor: <http://localhost:9000/editor> (enter the admin password)
+- Editor: <http://localhost:9000/editor>
 - Health: <http://localhost:9000/api/health>
 
-Config lives in `.env` (auto-generated on first run): `SERVER_PORT`,
-`POSTS_DIR`, `DB_PATH`, `ADMIN_TOKEN`, `THEMES_DIR`, `EXTENSIONS_DIR`,
-`BIND_IPV4`, `ENABLE_IPV6`, etc.
+On first boot the server generates a `.env` template, seeds the content
+directory, and creates the initial admin password (see below).
 
-### 🔐 Admin Password
+---
 
-The admin password (bcrypt-hashed, stored in the SQLite `settings` table)
-protects all write operations: creating/saving/deleting posts, deleting
-comments and changing the password itself. Comments are public to readers.
+## 🔐 Admin Password
+
+The admin password (bcrypt-hashed in the SQLite `settings` table) protects
+all write operations: creating/saving/deleting posts, deleting comments and
+changing the password itself.
 
 **First boot** — the initial password is chosen once:
 
-- `ADMIN_TOKEN` set in `.env` → used as the initial admin password (written
-  into the database; existing deployments migrate seamlessly);
+- `ADMIN_TOKEN` set in `.env` → used as the initial password (existing
+  deployments migrate seamlessly);
 - otherwise a random password is generated and printed to the startup log
   (shown once — save it).
 
 **Change it** (when you know the password):
 
-- `/editor` → "🔑 修改密码" (enter current + new password, or use the API
-  `POST /api/admin/password` with `X-Admin-Token`).
+- `/editor` → "🔑 修改密码" dialog (current + new password), or
+- `POST /api/admin/password` with `X-Admin-Token: <current>`.
 
-**Reset it** (when you forgot the password) — command line, no server needed:
+**Reset it** (forgot the password) — no server needed:
 
 ```bat
 :: 场景：服务在运行，但用户忘记了密码
@@ -176,9 +115,84 @@ fuwari-server
 ```
 
 New passwords must be at least 6 characters. The reset command also works
-piped (e.g. `echo -e "pass\npass" | fuwari-server -re pwd`) for automation.
+piped (`echo -e "pass\npass" | fuwari-server -re pwd`) for automation.
 
-### 🔗 Reverse-Proxy Sub-path Mounting (any prefix, no hardcoding)
+Auth headers: `X-Admin-Token: <password>` or `Authorization: Bearer <password>`.
+
+---
+
+## 🎨 Theme System (hot-reload, no recompiling)
+
+The UI — frontend **and** the `/editor` backend — is fully themeable at
+runtime, alist-style:
+
+```
+themes/
+  ocean/
+    theme.css        # CSS variable overrides (front & back UI share the same vars)
+    background.jpg   # optional background image (referenced in theme.css)
+    custom.js        # optional custom script (mascot/live2d, analytics, ...)
+    manifest.json    # optional metadata (name/description/author/version)
+```
+
+- **Switch**: URL `?theme=ocean`, Cookie `fuwari_theme`, or the switcher in
+  the editor — persisted in the cookie.
+- **Hot reload**: edit any file under `themes/<name>/` and refresh — no
+  recompiling, no restart.
+- **Front/back consistency**: the backend editor consumes the exact same CSS
+  variables as the frontend (`--page-bg`, `--card-bg`, `--deep-text`,
+  `--primary`, `--hue`, ...). Note: fuwari sets `--hue` inline in the original
+  Layout, so theme CSS must use `!important` on overridden variables.
+- **Defaults**: the `default` theme is the original untouched look
+  (embedded). Template themes are seeded into the runtime `themes/` dir on
+  first run.
+
+---
+
+## 🧩 Extensions (hot-loadable, live2d-style)
+
+Drop a folder under `extensions/<name>/` with `index.js` / `index.css`; they
+are injected into **every page** (frontend + backend) at serve time:
+
+```
+extensions/
+  live2d/
+    index.js         # mascot / kanban-musume entry
+    model/           # model assets (served at /extensions/live2d/model/...)
+```
+
+Edit and refresh — no recompiling. See `extensions/README.md` for details.
+
+---
+
+## 💬 Comments
+
+- **Posting is open to readers**: `POST /api/comments` with
+  `{slug, nickname, content}` — per-IP rate limited (10/min) and sanitized
+  (HTML stripped, Markdown rendered safely).
+- The comment widget is injected into article pages at serve time (frontend
+  sources untouched); Cherry Markdown renders each comment and provides the
+  composer editor.
+- **Deletion requires the admin password**: `DELETE /api/comments/:id`.
+
+---
+
+## ✍️ Article Editor (/editor)
+
+A standalone admin page (no frontend changes) with the full Cherry Markdown
+editor (`edit&preview`):
+
+- List/create/save/delete posts against the file-system content store
+- Post metadata: title, category, tags, description, draft flag
+- Theme switcher — the backend UI is themed identically to the frontend
+- 🔑 Change admin password dialog
+
+Access: <http://localhost:9000/editor> — enter the admin password (kept in
+`localStorage` between sessions).
+
+---
+
+## 🔗 Reverse-Proxy Sub-path Mounting
 
 The whole site — pages, **js/css assets**, API, comments, `/editor`, themes,
 extensions and pagefind search — works under **any** reverse-proxy sub-path
@@ -205,54 +219,114 @@ location /name/ {
 
 No configuration needed on the fuwari side.
 
-## 🎨 Theme System (hot-reload, no recompiling)
+---
 
-The UI — frontend **and** the `/editor` backend — is fully themeable at
-runtime, alist-style. Themes live in `themes/<name>/`:
+## ⚙️ Configuration (.env)
 
+Auto-generated on first boot; edit and restart to apply:
+
+| Variable | Default | Description |
+|:---|:---|:---|
+| `SERVER_PORT` | `9000` | HTTP port |
+| `DB_PATH` | `./data/fuwari.db` | SQLite file (comments + settings) |
+| `POSTS_DIR` | `./content/posts` | Runtime post store (seeded from `SRC_POSTS_DIR`) |
+| `SRC_POSTS_DIR` | `./src/content/posts` | Seed source (read-only) |
+| `ADMIN_TOKEN` | *(empty)* | First-boot initial admin password; if empty a random one is printed once |
+| `THEMES_DIR` | `./themes` | Runtime themes (seeded from repo `themes/`) |
+| `DEFAULT_THEME` | `default` | Fallback theme name |
+| `EXTENSIONS_DIR` | `./extensions` | Runtime extensions (seeded from repo `extensions/`) |
+| `BIND_IPV4` | `0.0.0.0` | IPv4 bind address |
+| `ENABLE_IPV6` | `false` | `true` → listen on `[::]` (dual-stack) |
+| `BIND_IPV6` | `::` | IPv6 bind address |
+| `COMMENT_PAGE_SIZE` | `20` | Comments per page |
+| `COMMENT_MAX_LENGTH` | `4000` | Max comment length (chars) |
+
+---
+
+## 📡 API Overview
+
+Unified response envelope: `{code, message, data}` (`0` = success).
+
+| Method | Path | Auth | Description |
+|:---|:---|:---|:---|
+| GET | `/api/health` | — | Health check |
+| GET | `/api/posts` | — | List posts (`?include_draft=1` for drafts) |
+| GET | `/api/posts/:slug` | — | Post detail (frontmatter + body) |
+| GET | `/api/posts/:slug/raw` | — | Raw markdown source |
+| POST | `/api/posts` | ✅ | Create post |
+| PUT | `/api/posts/:slug` | ✅ | Update post |
+| DELETE | `/api/posts/:slug` | ✅ | Delete post |
+| GET | `/api/comments?slug=` | — | List comments |
+| POST | `/api/comments` | — | Post comment (rate-limited, sanitized) |
+| DELETE | `/api/comments/:id` | ✅ | Delete comment |
+| GET | `/api/themes` | — | List themes |
+| POST | `/api/theme` | — | Switch theme (cookie) |
+| POST | `/api/admin/password` | ✅ | Change admin password |
+| GET | `/themes/:name/*` | — | Theme assets (runtime-first, embedded fallback) |
+| GET | `/extensions/:name/*` | — | Extension assets |
+
+---
+
+## 🗂 Project Layout
+
+```text
+├── build.bat              # one-shot build: frontend → embed → Go binary
+├── src/                   # Astro frontend (original Fuwari theme, untouched)
+│   └── content/posts/     # seed posts (read-only source)
+├── themes/                # theme templates (seeded to runtime on first boot)
+├── extensions/            # extension templates
+└── server/                # Go backend (mirrors the NVS architecture)
+    ├── dist/              # Astro build output — embedded via go:embed
+    ├── assets/            # Cherry Markdown, comment widget, /editor, default theme
+    ├── config/            # .env loading & runtime config
+    ├── models/            # GORM models (Comment, Setting) + SQLite
+    ├── handlers/          # posts (fs), comments, themes, extensions, admin
+    ├── security/          # password auth, rate limit, sanitization
+    ├── utils/             # unified response
+    └── main.go / mount.go / embed.go / admin_cli.go
 ```
-themes/
-  ocean/
-    theme.css        # CSS variable overrides (front & back UI share the same vars)
-    background.jpg   # optional background image (referenced in theme.css)
-    custom.js        # optional custom script (mascot/live2d, analytics, ...)
-    manifest.json    # optional metadata (name/description/author/version)
+
+---
+
+## 🧑‍💻 Frontend Development (optional)
+
+The original Fuwari workflow still works for the Astro frontend:
+
+| Command | Action |
+|:---|:---|
+| `pnpm install` | Install dependencies |
+| `pnpm dev` | Local dev server at `localhost:4321` |
+| `pnpm build` | Build the site to `./dist/` |
+| `pnpm check` | Run checks |
+| `pnpm new-post <filename>` | Create a new post in `src/content/posts/` |
+
+Post frontmatter (aligned with the Fuwari collection schema):
+
+```yaml
+---
+title: My First Blog Post
+published: 2023-09-09
+description: This is the first post of my new Astro blog.
+image: ./cover.jpg
+tags: [Foo, Bar]
+category: Front-end
+draft: false
+---
 ```
 
-- **Switch**: URL `?theme=ocean`, Cookie `fuwari_theme`, or the switcher in
-  the editor; persisted in cookie.
-- **Hot reload**: edit any file under `themes/<name>/` and refresh — no
-  recompiling, no restart.
-- **Front/back consistency**: the backend editor consumes the exact same CSS
-  variables as the frontend (`--page-bg`, `--card-bg`, `--deep-text`,
-  `--primary`, `--hue`, ...), so a theme change restyles both instantly.
-  Note: fuwari sets `--hue` inline in the original Layout, so theme CSS
-  should use `!important` on variables it overrides.
-- **Defaults**: `default` theme is the original untouched look (embedded).
-  Template themes are seeded into the runtime `themes/` dir on first run.
-
-## 🧩 Extensions (hot-loadable, live2d-style)
-
-Drop a folder under `extensions/<name>/` with `index.js` / `index.css`;
-they are injected into **every page** (frontend + backend) at serve time:
-
-```
-extensions/
-  live2d/
-    index.js         # mascot/kanban musume entry
-    model/           # model assets (served at /extensions/live2d/model/...)
-```
-
-Edit and refresh — no recompiling. See `extensions/README.md` for details.
-
-## ✏️ Contributing
-
-Check out the [Contributing Guide](https://github.com/saicaca/fuwari/blob/main/CONTRIBUTING.md) for details on how to contribute to this project.
+---
 
 ## 📄 License
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+**GNU Affero General Public License v3.0 (AGPL-3.0)**
 
-- This repository is a derivative work based on the [Fuwari](https://github.com/saicaca/fuwari) blog theme by saicaca (MIT License). The original copyright notice is preserved in [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).
-- If you deploy this program as a network service, you MUST provide your users with access to the corresponding source code (see AGPL v3.0 section 13 and [NOTICE](./NOTICE)).
-- See [LICENSE](./LICENSE) for the full license text and [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) for bundled third-party components.
+- This repository is a derivative work of the
+  [Fuwari](https://github.com/saicaca/fuwari) blog theme by saicaca
+  (MIT License). The original copyright notice is preserved in
+  [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).
+- If you deploy this program as a network service, you MUST provide your
+  users with access to the corresponding source code (AGPL v3.0 section 13,
+  see [NOTICE](./NOTICE)).
+- See [LICENSE](./LICENSE) for the full license text and
+  [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) for bundled third-party
+  components (Cherry Markdown, Go modules, frontend packages).
