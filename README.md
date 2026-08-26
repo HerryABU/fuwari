@@ -201,6 +201,11 @@ frontend and i18n (中文/English):
 Access: <http://localhost:9000/admin> — enter the admin password (kept in
 `localStorage` between sessions). `/editor` remains as a compatible alias.
 
+**UI is dynamically injected & hot-reloadable**: the console's styles and
+logic live in the runtime `admin/ui.css` + `admin/ui.js` (seeded from the
+embedded defaults on first boot; `ADMIN_DIR`). Edit them and refresh — no
+recompiling, no restart — just like themes and extensions.
+
 ---
 
 ## 🌐 Runtime Posts on the Frontend

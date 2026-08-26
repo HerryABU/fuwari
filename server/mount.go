@@ -31,7 +31,7 @@ var knownRootDirs = map[string]bool{}
 // InitKnownRoots 初始化根级路径集合：后端保留段 + 嵌入前端根目录/文件。
 // 在 frontendFS 就绪后调用一次。
 func InitKnownRoots(frontendFS fs.FS) {
-	for _, s := range []string{"api", "assets", "themes", "extensions", "editor"} {
+	for _, s := range []string{"api", "assets", "themes", "extensions", "editor", "admin"} {
 		knownRootDirs[s] = true
 	}
 	if entries, err := fs.ReadDir(frontendFS, "."); err == nil {

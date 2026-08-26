@@ -50,6 +50,10 @@ func main() {
 	_ = os.MkdirAll(config.ExtensionsDir, 0755)
 	seedThemesAndExtensions()
 
+	// 确保管理后台 UI 运行时目录存在，并从内嵌默认资源种子（ui.css / ui.js 热加载）
+	_ = os.MkdirAll(config.AdminDir, 0755)
+	seedAdminUI()
+
 	// 初始化数据库
 	if err := models.InitDatabase(); err != nil {
 		log.Fatalf("数据库初始化失败: %v", err)
@@ -139,6 +143,11 @@ func main() {
 		}
 		if path == "/assets/comments.css" {
 			serveEmbeddedAsset(c, "comments.css", "")
+			return
+		}
+		// 后台 UI 动态资源（运行时 admin/ 优先热加载，内嵌 admin-default 兜底）
+		if path == "/admin/ui.css" || path == "/admin/ui.js" {
+			serveAdminAsset(c, filepath.Base(path))
 			return
 		}
 		// 动态文章查看器（SSG 下运行时文章前台渲染 + 列表补全）
@@ -262,6 +271,42 @@ func main() {
 	if err := http.ListenAndServe(listenAddr, siteHandler); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)
 	}
+}
+
+// seedAdminUI 确保运行时 admin/ 目录含 ui.css 与 ui.js（首次从内嵌 admin-default 复制）。
+// 之后用户可直接编辑运行时文件，刷新页面即热加载，无需重新编译。
+func seedAdminUI() {
+	for _, name := range []string{"ui.css", "ui.js"} {
+		target := filepath.Join(config.AdminDir, name)
+		if _, err := os.Stat(target); err == nil {
+			continue // 已存在（用户可能已自定义），保留
+		}
+		data, err := fs.ReadFile(assetsFS, "assets/admin-default/"+name)
+		if err != nil {
+			continue
+		}
+		if werr := os.WriteFile(target, data, 0644); werr == nil {
+			log.Printf("已生成后台 UI 默认资源: %s（修改后刷新即生效）", target)
+		}
+	}
+}
+
+// serveAdminAsset 提供运行时 admin/<file>（热加载，no-cache）；缺失时内嵌 admin-default 兜底。
+func serveAdminAsset(c *gin.Context, file string) {
+	// 运行时优先
+	target := filepath.Join(config.AdminDir, file)
+	if data, err := os.ReadFile(target); err == nil {
+		c.Header("Cache-Control", "no-cache")
+		c.Data(http.StatusOK, assetContentType(file), data)
+		return
+	}
+	// 内嵌兜底
+	if data, err := fs.ReadFile(assetsFS, "assets/admin-default/"+file); err == nil {
+		c.Header("Cache-Control", "no-cache")
+		c.Data(http.StatusOK, assetContentType(file), data)
+		return
+	}
+	c.Status(http.StatusNotFound)
 }
 
 // seedThemesAndExtensions 从仓库根（exe 父目录）复制默认主题/扩展模板到运行时目录。

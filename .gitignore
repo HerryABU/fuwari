@@ -56,3 +56,5 @@ server/content/
 # runtime theme/extension working copies (seeded from root themes/ extensions/ templates)
 server/themes/
 server/extensions/
+# runtime admin UI working copy (seeded from embedded admin-default; edit for hot reload)
+server/admin/

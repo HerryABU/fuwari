@@ -58,6 +58,11 @@ DEFAULT_THEME=default
 # 例：extensions/live2d/ 放置看板娘资源，无需重新编译即可生效。
 EXTENSIONS_DIR=./extensions
 
+# ==================== 管理后台 UI（运行时热加载，无需重编译） ====================
+# admin/ui.css 与 admin/ui.js 由 /admin 页面动态注入；
+# 修改样式/逻辑后刷新页面即生效。首次启动从内嵌默认资源复制。
+ADMIN_DIR=./admin
+
 # ==================== 网络 / IPv6 ====================
 # 绑定 IPv4 地址（0.0.0.0 = 所有网卡）
 BIND_IPV4=0.0.0.0
@@ -93,6 +98,9 @@ var (
 	// 扩展目录
 	ExtensionsDir string
 
+	// 管理后台 UI 目录（运行时热加载：ui.css / ui.js，无需重编译）
+	AdminDir string
+
 	// 网络 / IPv6
 	BindIPv4   string
 	EnableIPv6 bool
@@ -124,6 +132,8 @@ func Init() {
 	DefaultTheme = envOr("DEFAULT_THEME", "default")
 
 	ExtensionsDir = envOr("EXTENSIONS_DIR", "./extensions")
+
+	AdminDir = envOr("ADMIN_DIR", "./admin")
 
 	BindIPv4 = envOr("BIND_IPV4", "0.0.0.0")
 	EnableIPv6 = envOr("ENABLE_IPV6", "false") == "true"
