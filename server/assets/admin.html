@@ -3,193 +3,244 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fuwari Admin</title>
+<title>Fuwari 管理后台</title>
 <!-- FRONTEND_STYLES -->
-<!-- 后台 UI 覆盖样式：运行时 admin/ui.css 动态注入（热加载） -->
+<!-- 后台 UI 特有样式：运行时 admin/ui.css 动态注入（热加载） -->
 <link rel="stylesheet" href="/admin/ui.css">
 </head>
-<body class="min-h-screen">
-<!-- 顶部导航：与前台 header 完全同款（居中容器 + btn-regular 链接 + 控件组）。
-     每个入口是真实子页面（/admin、/admin/posts ...），可直达/刷新/分享。 -->
-<header class="sticky top-0 z-40 backdrop-blur-md bg-[color-mix(in_srgb,var(--card-bg)_82%,transparent)] border-b border-[var(--line-color)]">
-  <div class="max-w-[var(--page-width)] mx-auto px-4 py-2.5 flex items-center gap-2 flex-wrap">
-    <a href="/admin" class="brand font-bold relative pl-5 before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2">✍️ Fuwari Admin</a>
-    <nav id="tabs" class="flex gap-1.5 flex-wrap items-center">
-      <a href="/admin" class="fw-tab" data-tab="home" data-i18n="tabHome">🏠 面板</a>
-      <a href="/admin/posts" class="fw-tab" data-tab="posts" data-i18n="tabPosts">📝 文章</a>
-      <a href="/admin/comments" class="fw-tab" data-tab="comments" data-i18n="tabComments">💬 评论</a>
-      <a href="/admin/themes" class="fw-tab" data-tab="themes" data-i18n="tabThemes">🎨 主题</a>
-      <a href="/admin/password" class="fw-tab" data-tab="password" data-i18n="tabPassword">🔑 密码</a>
-      <a href="/admin/system" class="fw-tab" data-tab="system" data-i18n="tabSystem">ℹ️ 系统</a>
-    </nav>
-    <div class="flex items-center gap-2 ml-auto flex-wrap">
-      <input id="token" type="password" placeholder="管理员密码" autocomplete="off" class="fw-input !w-44">
-      <select id="theme-switch" class="fw-input fw-select"></select>
-      <button id="scheme-switch" class="fw-btn fw-btn-ghost" title="切换深浅色">🌙</button>
-      <select id="lang-switch" class="fw-input fw-select">
-        <option value="zh">中文</option>
-        <option value="en">English</option>
-      </select>
-      <span id="status" class="text-xs text-[var(--meta-divider)] whitespace-nowrap"></span>
+<body class="min-h-screen transition">
+
+<!-- ════════════════════════════════════════════════════════════════
+     顶部导航：完全复刻前台 Navbar
+     card-base 圆角条 + btn-plain scale-animation 导航 + 控件组
+     ════════════════════════════════════════════════════════════════ -->
+<div id="top-row" class="relative z-50 max-w-[var(--page-width)] px-0 md:px-4 mx-auto">
+  <div id="navbar-wrapper" class="sticky top-0 z-50">
+    <div id="navbar" class="card-base !overflow-visible relative max-w-[var(--page-width)] h-[4.5rem] !rounded-t-none mx-auto flex items-center justify-between px-4">
+      <!-- 品牌 -->
+      <a href="/admin" data-tab="home" class="btn-plain scale-animation rounded-lg h-[3.25rem] px-5 font-bold active:scale-95 shrink-0">
+        <div class="flex flex-row text-[var(--primary)] items-center text-lg">
+          <span class="fw-brand-icon mr-2">✒️</span>Fuwari Admin
+        </div>
+      </a>
+
+      <!-- 桌面导航（前台 Navbar 链接语言：btn-plain scale-animation rounded-lg h-11 font-bold） -->
+      <nav id="tabs" class="fw-desktop items-center gap-1 fw-scroll-x hide-scrollbar">
+        <a href="/admin" data-tab="home" class="fw-tab" data-i18n="tabHome">🏠 面板</a>
+        <a href="/admin/posts" data-tab="posts" class="fw-tab" data-i18n="tabPosts">📝 文章</a>
+        <a href="/admin/comments" data-tab="comments" class="fw-tab" data-i18n="tabComments">💬 评论</a>
+        <a href="/admin/themes" data-tab="themes" class="fw-tab" data-i18n="tabThemes">🎨 主题</a>
+        <a href="/admin/password" data-tab="password" class="fw-tab" data-i18n="tabPassword">🔑 密码</a>
+        <a href="/admin/system" data-tab="system" class="fw-tab" data-i18n="tabSystem">ℹ️ 系统</a>
+      </nav>
+
+      <!-- 桌面控件（复刻前台搜索框 + LightDarkSwitch 语言） -->
+      <div class="fw-desktop items-center gap-2 shrink-0">
+        <div class="flex items-center h-11 rounded-lg bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06] dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10">
+          <span class="pl-3 text-sm pointer-events-none text-black/30 dark:text-white/30">🔑</span>
+          <input id="token" type="password" placeholder="管理员密码" autocomplete="off"
+                 class="pl-2 pr-3 text-sm bg-transparent outline-0 h-full transition-all text-black/50 dark:text-white/50">
+        </div>
+        <select id="theme-switch" class="fw-select" title="切换主题"></select>
+        <select id="lang-switch" class="fw-select">
+          <option value="zh">中文</option>
+          <option value="en">EN</option>
+        </select>
+        <button id="scheme-switch" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" title="切换深浅色" aria-label="Display Mode">🌓</button>
+      </div>
+
+      <!-- 移动控件 -->
+      <div class="fw-mobile items-center gap-1 shrink-0">
+        <button id="admin-switch" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" aria-label="Admin Token">🔑</button>
+        <button id="scheme-switch-m" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" aria-label="Display Mode">🌓</button>
+        <button id="nav-menu-switch" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" aria-label="Menu">☰</button>
+      </div>
+
+      <!-- 移动端：管理员认证面板（float-panel 语言） -->
+      <div id="admin-panel" class="float-panel float-panel-closed fw-panel-pos fw-panel-auth absolute p-3 z-50 shadow-2xl">
+        <div class="font-bold text-sm text-90 mb-2">🔑 管理员认证</div>
+        <input id="token-m" type="password" placeholder="管理员密码" class="fw-input w-full mb-2" autocomplete="off">
+        <div id="status-m" class="text-xs text-50 mb-1"></div>
+        <button id="token-ok" class="btn-regular rounded-lg h-10 w-full font-bold text-sm active:scale-95 transition">保存</button>
+      </div>
+
+      <!-- 移动端：导航面板（前台 NavMenuPanel 语言） -->
+      <div id="nav-menu-panel" class="float-panel float-panel-closed fw-panel-pos fw-panel-menu absolute p-2 z-50 shadow-2xl">
+        <nav class="flex flex-col gap-0.5">
+          <a href="/admin" data-tab="home" class="fw-tab fw-tab-block" data-i18n="tabHome">🏠 面板</a>
+          <a href="/admin/posts" data-tab="posts" class="fw-tab fw-tab-block" data-i18n="tabPosts">📝 文章</a>
+          <a href="/admin/comments" data-tab="comments" class="fw-tab fw-tab-block" data-i18n="tabComments">💬 评论</a>
+          <a href="/admin/themes" data-tab="themes" class="fw-tab fw-tab-block" data-i18n="tabThemes">🎨 主题</a>
+          <a href="/admin/password" data-tab="password" class="fw-tab fw-tab-block" data-i18n="tabPassword">🔑 密码</a>
+          <a href="/admin/system" data-tab="system" class="fw-tab fw-tab-block" data-i18n="tabSystem">ℹ️ 系统</a>
+        </nav>
+        <div class="flex gap-2 mt-2 pt-2 fw-hr">
+          <select id="theme-switch-m" class="fw-select fw-select-flex"></select>
+          <select id="lang-switch-m" class="fw-select fw-select-flex">
+            <option value="zh">中文</option>
+            <option value="en">EN</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
-</header>
-
-<main class="max-w-[var(--page-width)] mx-auto px-0 md:px-4 py-5">
-
-<!-- ========== 面板首页（dashboard） ========== -->
-<div class="fw-view" id="view-home">
-  <div class="fw-grid">
-    <section class="space-y-4 min-w-0">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-6 onload-animation">
-        <h3 class="fw-card-title" data-i18n="welcomeTitle">👋 欢迎回来</h3>
-        <p class="text-sm opacity-80 mt-3" data-i18n="welcomeTip">这里是 Fuwari 管理面板。左侧是站点的实时概览，右侧可以快速开始写文章、管理评论或调整主题。</p>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5" id="stat-grid">
-          <div class="stat-card"><div class="num" id="stat-posts">–</div><div class="lbl" data-i18n="statPosts">文章</div></div>
-          <div class="stat-card"><div class="num" id="stat-drafts">–</div><div class="lbl" data-i18n="statDrafts">草稿</div></div>
-          <div class="stat-card"><div class="num" id="stat-comments">–</div><div class="lbl" data-i18n="statComments">评论</div></div>
-          <div class="stat-card"><div class="num" id="stat-themes">–</div><div class="lbl" data-i18n="statThemes">主题</div></div>
-        </div>
-      </div>
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-6 onload-animation" style="animation-delay: 80ms">
-        <h3 class="fw-card-title" data-i18n="recentTitle">🕒 最近文章</h3>
-        <div id="recent-posts" class="mt-3 space-y-1"></div>
-      </div>
-    </section>
-    <aside class="space-y-4">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 40ms">
-        <h3 class="fw-card-title" data-i18n="quickTitle">⚡ 快捷操作</h3>
-        <div class="flex flex-col gap-2.5 mt-3">
-          <a href="/admin/posts?new=1" class="fw-btn fw-btn-primary w-full justify-center" data-i18n="quickNew">✍️ 写新文章</a>
-          <a href="/admin/comments" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="quickComments">💬 评论管理</a>
-          <a href="/admin/themes" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="quickThemes">🎨 主题设置</a>
-          <a href="/admin/password" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="quickPwd">🔑 修改密码</a>
-        </div>
-      </div>
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 120ms">
-        <h3 class="fw-card-title" data-i18n="sysTitle">ℹ️ 系统状态</h3>
-        <div id="sys-mini" class="mt-3 text-sm space-y-2"></div>
-      </div>
-    </aside>
-  </div>
 </div>
 
-<!-- ========== 子页面：文章 ========== -->
-<div class="fw-view" id="view-posts">
-  <div class="fw-grid">
-    <section class="space-y-4 min-w-0">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-3 onload-animation">
-        <div id="post-list"></div>
-      </div>
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden onload-animation" style="animation-delay: 80ms">
-        <div id="editor" class="fw-editor"></div>
-      </div>
-    </section>
-    <aside class="space-y-4">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 40ms">
-        <h3 class="fw-card-title" data-i18n="opsTitle">⚙️ 操作</h3>
-        <div class="flex flex-col gap-2.5 mt-3">
-          <a id="btn-new" href="/admin/posts?new=1" class="fw-btn fw-btn-ghost w-full justify-center" data-i18n="btnNew">＋ 新建</a>
-          <button id="btn-save" class="fw-btn fw-btn-primary w-full justify-center" data-i18n="btnSave">保存</button>
-          <button id="btn-delete" class="fw-btn fw-btn-danger w-full justify-center" data-i18n="btnDelete">删除</button>
+<!-- ════════════════════════════════════════════════════════════════
+     主内容：完全复刻前台 MainGridLayout
+     grid-cols-[17.5rem_auto] 左栏（sidebar 卡片堆叠）+ 右主区
+     ════════════════════════════════════════════════════════════════ -->
+<div class="relative max-w-[var(--page-width)] mx-auto px-0 md:px-4">
+  <div id="main-grid" class="fw-layout transition w-full mx-auto py-4">
+
+    <!-- 左栏（前台 SideBar 语言：flex flex-col gap-4 + sticky） -->
+    <aside class="fw-sidebar">
+      <div id="sidebar-sticky" class="fw-sidebar-sticky">
+
+        <!-- 站点卡（复刻前台 Profile 卡语言） -->
+        <div class="card-base p-5 onload-animation">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-[var(--btn-regular-bg)] flex items-center justify-center text-[1.6rem] shrink-0">✒️</div>
+            <div class="min-w-0">
+              <div class="font-bold text-lg text-neutral-900 dark:text-neutral-100 truncate">Fuwari Admin</div>
+              <div class="text-sm text-50 truncate" data-i18n="siteRole">管理控制台</div>
+            </div>
+          </div>
+          <div class="h-1 w-5 bg-[var(--primary)] rounded-full mt-4 mb-3"></div>
+          <div class="flex items-center gap-2">
+            <a href="/" target="_blank" class="btn-regular rounded-lg h-10 px-3 text-sm font-bold gap-2 active:scale-95 transition" data-i18n="openSite">🌐 打开前台</a>
+            <span id="auth-badge" class="badge ml-auto" title="管理员认证状态">🔒</span>
+          </div>
         </div>
-      </div>
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 120ms">
-        <h3 class="fw-card-title" data-i18n="infoTitle">📄 文章信息</h3>
-        <div class="flex flex-col gap-2.5 mt-3">
-          <input id="f-title" class="fw-input w-full" data-i18n-ph="phTitle" placeholder="标题 *">
-          <input id="f-category" class="fw-input w-full" data-i18n-ph="phCategory" placeholder="分类">
-          <input id="f-tags" class="fw-input w-full" data-i18n-ph="phTags" placeholder="标签（逗号分隔）">
-          <textarea id="f-description" class="fw-input w-full resize-y !min-h-[4.5rem]" data-i18n-ph="phDescription" placeholder="摘要描述"></textarea>
-          <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="f-draft" class="accent-[var(--primary)]"> <span data-i18n="draftLabel">草稿（不对外发布）</span></label>
+
+        <!-- 快捷操作卡（复刻前台 WidgetLayout 语言） -->
+        <div class="card-base p-2 pb-3 onload-animation" style="animation-delay:80ms">
+          <div class="widget-title" data-i18n="quickTitle">⚡ 快捷操作</div>
+          <div class="px-2 flex flex-col">
+            <a href="/admin/posts?new=1" class="fw-action" data-i18n="quickNew">✍️ 写新文章</a>
+            <a href="/admin/comments" class="fw-action" data-i18n="quickComments">💬 评论管理</a>
+            <a href="/admin/themes" class="fw-action" data-i18n="quickThemes">🎨 主题设置</a>
+            <a href="/admin/password" class="fw-action" data-i18n="quickPwd">🔑 修改密码</a>
+            <a href="/admin/system" class="fw-action" data-i18n="quickSys">ℹ️ 系统信息</a>
+          </div>
+        </div>
+
+        <!-- 系统状态卡 -->
+        <div class="card-base p-5 onload-animation" style="animation-delay:160ms">
+          <div class="widget-title" data-i18n="sysTitle">🖥️ 系统状态</div>
+          <div id="sys-mini" class="mt-3 flex flex-col text-sm"></div>
         </div>
       </div>
     </aside>
-  </div>
-</div>
 
-<!-- ========== 子页面：评论 ========== -->
-<div class="fw-view" id="view-comments">
-  <div class="fw-grid">
-    <section class="space-y-4 min-w-0">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation">
-        <h3 class="fw-card-title" data-i18n="tabComments">💬 评论</h3>
-        <div id="cmt-list" class="space-y-3 mt-4"></div>
-      </div>
-    </section>
-    <aside class="space-y-4">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 40ms">
-        <h3 class="fw-card-title" data-i18n="filterTitle">🔍 过滤</h3>
-        <div class="flex flex-col gap-2.5 mt-3">
-          <input id="cmt-slug" class="fw-input w-full" data-i18n-ph="phCommentFilter" placeholder="按文章 slug 过滤（留空=全部）">
-          <button class="fw-btn fw-btn-primary w-full justify-center" id="cmt-load" data-i18n="btnLoad">加载</button>
+    <!-- 右主区 -->
+    <main id="admin-main" class="fw-main">
+      <div class="flex flex-col gap-4">
+
+        <!-- ═══════ 面板首页（dashboard） ═══════ -->
+        <div class="fw-view active" id="view-home">
+          <div class="card-base p-6 onload-animation">
+            <div class="widget-title" data-i18n="welcomeTitle">👋 欢迎回来</div>
+            <p class="text-sm text-75 mt-1 mb-5" data-i18n="welcomeTip">这里是站点管理面板，左侧可快速开始写作与维护，下方是站点的实时概览。</p>
+            <div class="fw-stat-grid">
+              <div class="stat-card"><div class="num" id="stat-posts">–</div><div class="lbl" data-i18n="statPosts">文章</div></div>
+              <div class="stat-card"><div class="num" id="stat-drafts">–</div><div class="lbl" data-i18n="statDrafts">草稿</div></div>
+              <div class="stat-card"><div class="num" id="stat-comments">–</div><div class="lbl" data-i18n="statComments">评论</div></div>
+              <div class="stat-card"><div class="num" id="stat-themes">–</div><div class="lbl" data-i18n="statThemes">主题</div></div>
+            </div>
+          </div>
+          <div class="card-base p-5 onload-animation" style="animation-delay:80ms">
+            <div class="widget-title" data-i18n="recentTitle">🕒 最近文章</div>
+            <div id="recent-posts" class="px-1 mt-2 flex flex-col"></div>
+          </div>
         </div>
-      </div>
-    </aside>
-  </div>
-</div>
 
-<!-- ========== 子页面：主题 ========== -->
-<div class="fw-view" id="view-themes">
-  <div class="fw-grid">
-    <section class="space-y-4 min-w-0">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation">
-        <h3 class="fw-card-title" data-i18n="tabThemes">🎨 主题</h3>
-        <div class="theme-grid grid gap-4 sm:grid-cols-2 mt-4" id="theme-grid"></div>
-      </div>
-    </section>
-    <aside class="space-y-4">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 40ms">
-        <h3 class="fw-card-title" data-i18n="themeTipTitle">💡 说明</h3>
-        <p class="text-sm mt-3 opacity-80" data-i18n="themeTip">点击卡片即可切换主题；主题文件位于 themes/ 目录，修改后刷新即生效。</p>
-      </div>
-    </aside>
-  </div>
-</div>
-
-<!-- ========== 子页面：密码 ========== -->
-<div class="fw-view" id="view-password">
-  <div class="fw-grid">
-    <section class="space-y-4 min-w-0">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-6 onload-animation">
-        <h3 class="fw-card-title" data-i18n="pwdTitle">🔑 修改管理员密码</h3>
-        <div class="flex flex-col gap-2.5 mt-4 max-w-md">
-          <input id="pwd-old" type="password" class="fw-input w-full" data-i18n-ph="pwdOld" placeholder="当前密码" autocomplete="current-password">
-          <input id="pwd-new" type="password" class="fw-input w-full" data-i18n-ph="pwdNew" placeholder="新密码（至少 6 个字符）" autocomplete="new-password">
-          <input id="pwd-new2" type="password" class="fw-input w-full" data-i18n-ph="pwdNew2" placeholder="确认新密码" autocomplete="new-password">
-          <div id="pwd-msg" class="text-sm min-h-[1.2rem]"></div>
-          <button id="pwd-ok" class="fw-btn fw-btn-primary w-fit" data-i18n="pwdSubmit">确认修改</button>
+        <!-- ═══════ 子页面：文章 ═══════ -->
+        <div class="fw-view" id="view-posts">
+          <div class="card-base p-5 onload-animation">
+            <div class="widget-title" data-i18n="tabPosts">📝 文章</div>
+            <div class="flex gap-2 mt-2 mb-3 px-1">
+              <input id="post-search" class="fw-input fw-grow" data-i18n-ph="phSearch" placeholder="搜索标题或 slug…">
+              <a href="/admin/posts?new=1" id="btn-new" class="btn-regular rounded-lg h-11 px-4 font-bold text-sm shrink-0 active:scale-95 transition" data-i18n="btnNew">＋ 新建</a>
+            </div>
+            <div id="post-list" class="px-1 flex flex-col"></div>
+          </div>
+          <div class="card-base p-5 onload-animation" style="animation-delay:60ms">
+            <div class="widget-title" data-i18n="editorTitle">✍️ 编辑器</div>
+            <div class="fw-editor-grid mt-2 mb-3 px-1">
+              <div class="flex flex-col gap-2">
+                <input id="f-title" class="fw-input w-full" data-i18n-ph="phTitle" placeholder="标题 *">
+                <input id="f-category" class="fw-input w-full" data-i18n-ph="phCategory" placeholder="分类">
+                <input id="f-tags" class="fw-input w-full" data-i18n-ph="phTags" placeholder="标签（逗号分隔）">
+                <textarea id="f-description" class="fw-input w-full resize-y" data-i18n-ph="phDescription" placeholder="摘要描述"></textarea>
+                <label class="flex items-center gap-2 text-sm text-75 cursor-pointer select-none px-0.5">
+                  <input type="checkbox" id="f-draft" class="fw-check">
+                  <span data-i18n="draftLabel">草稿（不对外发布）</span>
+                </label>
+                <div class="flex gap-2 mt-1">
+                  <button id="btn-save" class="btn-regular rounded-lg h-11 flex-1 font-bold text-sm active:scale-95 transition" data-i18n="btnSave">保存</button>
+                  <button id="btn-delete" class="fw-btn-danger rounded-lg h-11 font-bold text-sm px-4" data-i18n="btnDelete">删除</button>
+                </div>
+              </div>
+              <div id="editor" class="fw-editor"></div>
+            </div>
+          </div>
         </div>
+
+        <!-- ═══════ 子页面：评论 ═══════ -->
+        <div class="fw-view" id="view-comments">
+          <div class="card-base p-5 onload-animation">
+            <div class="widget-title" data-i18n="tabComments">💬 评论</div>
+            <div class="flex gap-2 mt-2 mb-3 px-1">
+              <input id="cmt-slug" class="fw-input fw-grow" data-i18n-ph="phCommentFilter" placeholder="按文章 slug 过滤（留空 = 全部）">
+              <button id="cmt-load" class="btn-regular rounded-lg h-11 px-4 font-bold text-sm shrink-0 active:scale-95 transition" data-i18n="btnLoad">加载</button>
+            </div>
+            <div id="cmt-list" class="px-1 flex flex-col gap-2"></div>
+          </div>
+        </div>
+
+        <!-- ═══════ 子页面：主题 ═══════ -->
+        <div class="fw-view" id="view-themes">
+          <div class="card-base p-5 onload-animation">
+            <div class="widget-title" data-i18n="tabThemes">🎨 主题</div>
+            <p class="text-sm text-75 px-1 mb-4" data-i18n="themeTip">点击卡片即可切换主题；主题文件位于 themes/ 目录，修改后刷新即生效。</p>
+            <div class="fw-theme-grid" id="theme-grid"></div>
+          </div>
+        </div>
+
+        <!-- ═══════ 子页面：密码 ═══════ -->
+        <div class="fw-view" id="view-password">
+          <div class="card-base p-6 onload-animation fw-card-narrow">
+            <div class="widget-title" data-i18n="pwdTitle">🔑 修改管理员密码</div>
+            <div class="flex flex-col gap-3 mt-4 px-1 fw-form-narrow">
+              <input id="pwd-old" type="password" class="fw-input w-full" data-i18n-ph="pwdOld" placeholder="当前密码" autocomplete="current-password">
+              <input id="pwd-new" type="password" class="fw-input w-full" data-i18n-ph="pwdNew" placeholder="新密码（至少 6 个字符）" autocomplete="new-password">
+              <input id="pwd-new2" type="password" class="fw-input w-full" data-i18n-ph="pwdNew2" placeholder="确认新密码" autocomplete="new-password">
+              <div id="pwd-msg" class="text-sm fw-msg-min text-50"></div>
+              <div>
+                <button id="pwd-ok" class="btn-regular rounded-lg h-11 px-6 font-bold text-sm active:scale-95 transition" data-i18n="pwdSubmit">确认修改</button>
+              </div>
+            </div>
+            <div class="mt-5 pt-4 fw-hr text-xs text-50 px-1" data-i18n="pwdTip">忘记密码？停止服务后运行 fuwari-server -re pwd 命令行重置。</div>
+          </div>
+        </div>
+
+        <!-- ═══════ 子页面：系统 ═══════ -->
+        <div class="fw-view" id="view-system">
+          <div class="card-base p-5 onload-animation">
+            <div class="widget-title" data-i18n="systemTitle">ℹ️ 系统信息</div>
+            <div id="sys-info" class="mt-3 px-1"></div>
+          </div>
+          <div class="card-base p-5 onload-animation" style="animation-delay:60ms">
+            <div class="widget-title" data-i18n="aboutTitle">🍥 关于</div>
+            <p class="text-sm text-75 px-1 mt-2" data-i18n="aboutTip">Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。</p>
+          </div>
+        </div>
+
       </div>
-    </section>
-    <aside class="space-y-4">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 40ms">
-        <h3 class="fw-card-title" data-i18n="pwdTipTitle">🔐 忘记密码？</h3>
-        <p class="text-sm mt-3 opacity-80" data-i18n="pwdTip">停止服务后运行 <code class="px-1.5 py-0.5 rounded bg-[var(--btn-plain-bg-hover)]">fuwari-server -re pwd</code> 命令行重置。</p>
-      </div>
-    </aside>
+    </main>
   </div>
 </div>
-
-<!-- ========== 子页面：系统 ========== -->
-<div class="fw-view" id="view-system">
-  <div class="fw-grid">
-    <section class="space-y-4 min-w-0">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation">
-        <h3 class="fw-card-title" data-i18n="systemTitle">ℹ️ 系统信息</h3>
-        <div id="sys-info" class="mt-3"></div>
-      </div>
-    </section>
-    <aside class="space-y-4">
-      <div class="card-base rounded-[var(--radius-large)] overflow-hidden p-5 onload-animation" style="animation-delay: 40ms">
-        <h3 class="fw-card-title" data-i18n="aboutTitle">🍥 Fuwari</h3>
-        <p class="text-sm mt-3 opacity-80" data-i18n="aboutTip">Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。</p>
-      </div>
-    </aside>
-  </div>
-</div>
-
-</main>
 
 <script src="/assets/cherry/cherry-markdown.core.js"></script>
 <script src="/admin/ui.js"></script>

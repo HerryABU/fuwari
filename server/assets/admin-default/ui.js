@@ -1,14 +1,23 @@
-
+/* fuwari 管理后台 —— 完全复刻前台交互语言。
+ * 依赖：前台构建样式（服务端注入）+ 主题变量 + Cherry Markdown。
+ * 交互：与前台共享 localStorage（theme / hue），默认中文，移动端 float-panel 导航。
+ * 热加载：直接编辑本文件，刷新页面即生效。
+ */
 (function () {
   'use strict';
 
-  // ---------- 深浅色同步（与前台 localStorage 'theme' 完全一致，html.dark 驱动） ----------
+  var BASE = (window.FUWARI_BASE || '/');
+  var API = BASE + 'api';
+  var TOKEN_KEY = 'fuwari_admin_token';
+  var currentSlug = null;
+  var cherry = null;
+  var cherryInit = false;
+
+  /* ---------- 深浅色同步（与前台 localStorage 'theme' 完全一致，html.dark 驱动） ---------- */
   function syncTheme() {
     var t = localStorage.getItem('theme') || 'auto';
     var dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', dark);
-    var btn = document.getElementById('scheme-switch');
-    if (btn) btn.textContent = dark ? '☀️' : '🌙';
   }
   function toggleTheme() {
     var cur = document.documentElement.classList.contains('dark');
@@ -19,7 +28,7 @@
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncTheme);
   }
 
-  // ---------- 站点主色 hue（与前台 configHue 一致：html style --configHue / localStorage hue） ----------
+  /* ---------- 站点主色 hue（与前台一致：localStorage hue → --hue） ---------- */
   function applyHue() {
     var cfg = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--configHue')) || 250;
     var hue = localStorage.getItem('hue');
@@ -27,75 +36,90 @@
     document.documentElement.style.setProperty('--hue', cfg);
   }
 
-  var API = (window.FUWARI_BASE || '/') + 'api';
-  var currentSlug = null;
-  var cherry = null;
-  var cherryInit = false;
-  var TOKEN_KEY = 'fuwari_admin_token';
-
-  // ---------- i18n ----------
+  /* ---------- i18n（首次部署默认中文；双语表，lang 存 localStorage） ---------- */
   var I18N = {
     zh: {
-      tabPosts: '📝 文章', tabComments: '💬 评论', tabThemes: '🎨 主题', tabPassword: '🔑 密码', tabSystem: 'ℹ️ 系统',
-      btnNew: '＋ 新建', btnSave: '保存', btnDelete: '删除', draftLabel: '草稿（不对外发布）',
-      phTitle: '标题 *', phCategory: '分类', phTags: '标签（逗号分隔）', phDescription: '摘要描述', phCommentFilter: '按文章 slug 过滤（留空=全部）',
-      btnLoad: '加载', pwdTitle: '🔑 修改管理员密码', pwdOld: '当前密码', pwdNew: '新密码（至少 6 个字符）', pwdNew2: '确认新密码', pwdSubmit: '确认修改',
-      emptyPosts: '暂无文章，点击「＋ 新建」开始', emptyComments: '暂无评论', emptyThemes: '暂无主题', loadFail: '加载失败', saved: '已保存', deleted: '已删除',
-      newMode: '新文章模式（保存后自动生成 slug）', needTitle: '请填写标题', needToken: '请先填写管理员密码', noSelection: '未选择文章',
-      pwdEnter: '请输入当前密码', pwdShort: '新密码至少 6 个字符', pwdMismatch: '两次输入的新密码不一致', pwdOk: '✅ 密码已修改，请使用新密码', pwdFail: '修改失败', networkErr: '网络错误，请重试',
-      uploadFail: '上传失败', ready: '就绪', systemTitle: '系统信息', themeSwitch: '切换主题', themeActive: '当前', langLabel: '语言',
-      opsTitle: '⚙️ 操作', infoTitle: '📄 文章信息', filterTitle: '🔍 过滤',
-      themeTipTitle: '💡 说明', themeTip: '点击卡片即可切换主题；主题文件位于 themes/ 目录，修改后刷新即生效。',
-      pwdTipTitle: '🔐 忘记密码？', pwdTip: '停止服务后运行 fuwari-server -re pwd 命令行重置。',
-      aboutTitle: '🍥 Fuwari', aboutTip: 'Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。',
-      tabHome: '🏠 面板', sysVersion: '版本', sysUptime: '运行', sysDatabase: '数据库', sysPort: '端口', welcomeTitle: '👋 欢迎回来', welcomeTip: '这里是 Fuwari 管理面板。左侧是站点的实时概览，右侧可以快速开始写文章、管理评论或调整主题。',
+      tabHome: '🏠 面板', tabPosts: '📝 文章', tabComments: '💬 评论', tabThemes: '🎨 主题', tabPassword: '🔑 密码', tabSystem: 'ℹ️ 系统',
+      siteRole: '管理控制台', openSite: '🌐 打开前台',
+      quickTitle: '⚡ 快捷操作', quickNew: '✍️ 写新文章', quickComments: '💬 评论管理', quickThemes: '🎨 主题设置', quickPwd: '🔑 修改密码', quickSys: 'ℹ️ 系统信息',
+      sysTitle: '🖥️ 系统状态', sysVersion: '版本', sysUptime: '运行时长', sysDatabase: '数据库', sysPort: '端口',
+      welcomeTitle: '👋 欢迎回来', welcomeTip: '这里是站点管理面板，左侧可快速开始写作与维护，下方是站点的实时概览。',
       statPosts: '文章', statDrafts: '草稿', statComments: '评论', statThemes: '主题',
-      recentTitle: '🕒 最近文章', quickTitle: '⚡ 快捷操作', sysTitle: 'ℹ️ 系统状态',
-      quickNew: '✍️ 写新文章', quickComments: '💬 评论管理', quickThemes: '🎨 主题设置', quickPwd: '🔑 修改密码',
-      draftTag: '草稿', emptyRecent: '暂无文章'
+      recentTitle: '🕒 最近文章', emptyRecent: '暂无文章', emptyPosts: '暂无文章，点击「＋ 新建」开始', emptyComments: '暂无评论', emptyThemes: '暂无主题',
+      editorTitle: '✍️ 编辑器', phSearch: '搜索标题或 slug…', btnNew: '＋ 新建', btnSave: '保存', btnDelete: '删除', draftLabel: '草稿（不对外发布）',
+      phTitle: '标题 *', phCategory: '分类', phTags: '标签（逗号分隔）', phDescription: '摘要描述', phCommentFilter: '按文章 slug 过滤（留空 = 全部）', btnLoad: '加载',
+      pwdTitle: '🔑 修改管理员密码', pwdOld: '当前密码', pwdNew: '新密码（至少 6 个字符）', pwdNew2: '确认新密码', pwdSubmit: '确认修改', pwdTip: '忘记密码？停止服务后运行 fuwari-server -re pwd 命令行重置。',
+      themeTip: '点击卡片即可切换主题；主题文件位于 themes/ 目录，修改后刷新即生效。',
+      systemTitle: 'ℹ️ 系统信息', aboutTitle: '🍥 关于', aboutTip: 'Go 后端 + 内嵌 Astro 前端单二进制博客系统。后台 UI 与前台共用同一套样式与主题变量。',
+      draftTag: '草稿', saved: '已保存', deleted: '已删除', loadFail: '加载失败', uploadFail: '上传失败', networkErr: '网络错误，请重试',
+      newMode: '新文章模式：保存后自动生成 slug', needTitle: '请填写标题', needToken: '请先填写管理员密码', noSelection: '未选择文章',
+      pwdEnter: '请输入当前密码', pwdShort: '新密码至少 6 个字符', pwdMismatch: '两次输入的新密码不一致', pwdOk: '✅ 密码已修改，请使用新密码', pwdFail: '修改失败',
+      themeSwitch: '切换主题', tokenSaved: '✅ 管理员密码已保存', authOk: '🔓 已认证', authNo: '🔒 未认证', confirmDelete: '确定删除',
+      langLabel: '语言'
     },
     en: {
-      tabPosts: '📝 Posts', tabComments: '💬 Comments', tabThemes: '🎨 Themes', tabPassword: '🔑 Password', tabSystem: 'ℹ️ System',
-      btnNew: '＋ New', btnSave: 'Save', btnDelete: 'Delete', draftLabel: 'Draft (not published)',
-      phTitle: 'Title *', phCategory: 'Category', phTags: 'Tags (comma separated)', phDescription: 'Description', phCommentFilter: 'Filter by post slug (empty = all)',
-      btnLoad: 'Load', pwdTitle: '🔑 Change Admin Password', pwdOld: 'Current password', pwdNew: 'New password (min 6 chars)', pwdNew2: 'Confirm new password', pwdSubmit: 'Change',
-      emptyPosts: 'No posts yet — click "＋ New"', emptyComments: 'No comments', emptyThemes: 'No themes', loadFail: 'Load failed', saved: 'Saved', deleted: 'Deleted',
-      newMode: 'New post mode (slug auto-generated on save)', needTitle: 'Please fill in the title', needToken: 'Please enter the admin password first', noSelection: 'No post selected',
-      pwdEnter: 'Enter the current password', pwdShort: 'New password must be at least 6 characters', pwdMismatch: 'The two passwords do not match', pwdOk: '✅ Password updated, use the new one', pwdFail: 'Change failed', networkErr: 'Network error, please retry',
-      uploadFail: 'Upload failed', ready: 'Ready', systemTitle: 'System Info', themeSwitch: 'Switch theme', themeActive: 'Active', langLabel: 'Language',
-      opsTitle: '⚙️ Actions', infoTitle: '📄 Post Info', filterTitle: '🔍 Filter',
-      themeTipTitle: '💡 Tips', themeTip: 'Click a card to switch theme; theme files live in themes/, edit and refresh.',
-      pwdTipTitle: '🔐 Forgot it?', pwdTip: 'Stop the service and run fuwari-server -re pwd to reset from the command line.',
-      aboutTitle: '🍥 Fuwari', aboutTip: 'A Go-backend blog system with an embedded Astro frontend. The admin UI shares the exact same styles and theme variables as the frontend.',
-      tabHome: '🏠 Home', sysVersion: 'Version', sysUptime: 'Uptime', sysDatabase: 'Database', sysPort: 'Port', welcomeTitle: '👋 Welcome back', welcomeTip: 'This is the Fuwari admin panel. The left column shows live site stats; use the right column to start writing, manage comments or tweak themes.',
+      tabHome: '🏠 Home', tabPosts: '📝 Posts', tabComments: '💬 Comments', tabThemes: '🎨 Themes', tabPassword: '🔑 Password', tabSystem: 'ℹ️ System',
+      siteRole: 'Admin Console', openSite: '🌐 Open Site',
+      quickTitle: '⚡ Quick Actions', quickNew: '✍️ New Post', quickComments: '💬 Comments', quickThemes: '🎨 Themes', quickPwd: '🔑 Password', quickSys: 'ℹ️ System Info',
+      sysTitle: '🖥️ System Status', sysVersion: 'Version', sysUptime: 'Uptime', sysDatabase: 'Database', sysPort: 'Port',
+      welcomeTitle: '👋 Welcome back', welcomeTip: 'This is the site admin panel. Use the left column to start writing and maintaining, below is a live overview of the site.',
       statPosts: 'Posts', statDrafts: 'Drafts', statComments: 'Comments', statThemes: 'Themes',
-      recentTitle: '🕒 Recent Posts', quickTitle: '⚡ Quick Actions', sysTitle: 'ℹ️ System Status',
-      quickNew: '✍️ New Post', quickComments: '💬 Comments', quickThemes: '🎨 Themes', quickPwd: '🔑 Password',
-      draftTag: 'Draft', emptyRecent: 'No posts yet'
+      recentTitle: '🕒 Recent Posts', emptyRecent: 'No posts yet', emptyPosts: 'No posts — click "＋ New"', emptyComments: 'No comments', emptyThemes: 'No themes',
+      editorTitle: '✍️ Editor', phSearch: 'Search title or slug…', btnNew: '＋ New', btnSave: 'Save', btnDelete: 'Delete', draftLabel: 'Draft (not published)',
+      phTitle: 'Title *', phCategory: 'Category', phTags: 'Tags (comma separated)', phDescription: 'Description', phCommentFilter: 'Filter by post slug (empty = all)', btnLoad: 'Load',
+      pwdTitle: '🔑 Change Admin Password', pwdOld: 'Current password', pwdNew: 'New password (min 6 chars)', pwdNew2: 'Confirm new password', pwdSubmit: 'Change', pwdTip: 'Forgot it? Stop the service and run fuwari-server -re pwd to reset from the command line.',
+      themeTip: 'Click a card to switch theme; theme files live in themes/, edit and refresh.',
+      systemTitle: 'ℹ️ System Info', aboutTitle: '🍥 About', aboutTip: 'A Go-backend blog system with an embedded Astro frontend. The admin UI shares the exact same styles and theme variables as the frontend.',
+      draftTag: 'Draft', saved: 'Saved', deleted: 'Deleted', loadFail: 'Load failed', uploadFail: 'Upload failed', networkErr: 'Network error, please retry',
+      newMode: 'New post mode: slug is auto-generated on save', needTitle: 'Please fill in the title', needToken: 'Please enter the admin password first', noSelection: 'No post selected',
+      pwdEnter: 'Enter the current password', pwdShort: 'New password must be at least 6 characters', pwdMismatch: 'The two passwords do not match', pwdOk: '✅ Password updated, use the new one', pwdFail: 'Change failed',
+      themeSwitch: 'Switch theme', tokenSaved: '✅ Admin password saved', authOk: '🔓 Authed', authNo: '🔒 Not authed', confirmDelete: 'Delete',
+      langLabel: 'Language'
     }
   };
-  var lang = localStorage.getItem('fuwari_lang') || ((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en');
+  var lang = localStorage.getItem('fuwari_lang') || 'zh'; // 首次部署默认中文
   function T(k) { return (I18N[lang] && I18N[lang][k]) || k; }
   function applyI18n() {
     document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = T(el.dataset.i18n); });
     document.querySelectorAll('[data-i18n-ph]').forEach(function (el) { el.placeholder = T(el.dataset.i18nPh); });
     document.title = lang === 'zh' ? 'Fuwari 管理后台' : 'Fuwari Admin';
+    var ls = document.querySelectorAll('[id="lang-switch"],[id="lang-switch-m"]');
+    ls.forEach(function (s) { if (s.value !== lang) s.value = lang; });
   }
-  document.addEventListener('DOMContentLoaded', function () {
-    el('lang-switch').value = lang;
-    applyI18n();
-  });
 
   function el(id) { return document.getElementById(id); }
-  function getToken() {
-    var t = el('token').value.trim();
-    if (!t) t = localStorage.getItem(TOKEN_KEY) || '';
-    return t;
+
+  /* ---------- 轻提示 ---------- */
+  function toast(msg, isErr) {
+    var t = document.createElement('div');
+    t.className = 'toast' + (isErr ? ' toast-err' : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('show'); }, 10);
+    setTimeout(function () {
+      t.classList.remove('show');
+      setTimeout(function () { t.remove(); }, 320);
+    }, 2600);
   }
-  function setStatus(msg, isErr) {
-    var s = el('status');
-    s.textContent = msg;
-    s.style.color = isErr ? 'var(--fw-err,#ef4444)' : 'var(--meta-divider,#6b7280)';
+
+  /* ---------- 认证 ---------- */
+  function getToken() {
+    return localStorage.getItem(TOKEN_KEY) || '';
+  }
+  function setToken(v) {
+    var s = String(v || '').trim();
+    if (s) localStorage.setItem(TOKEN_KEY, s); else localStorage.removeItem(TOKEN_KEY);
+    var a = el('token'); if (a && a.value !== s) a.value = s;
+    var m = el('token-m'); if (m && m.value !== s) m.value = s;
+    updateAuthBadge();
+  }
+  function updateAuthBadge() {
+    var b = el('auth-badge');
+    if (!b) return;
+    var ok = !!getToken();
+    b.textContent = ok ? '🔓' : '🔒';
+    b.classList.toggle('badge-ok', ok);
+    b.title = ok ? T('authOk') : T('authNo');
   }
   function authHeaders(extra) {
     var h = { 'Content-Type': 'application/json', 'X-Admin-Token': getToken() };
@@ -111,8 +135,7 @@
     });
   }
 
-  // ---------- Tabs ----------
-  // ---------- 视图解析（真实子页面 URL：/admin → home，/admin/posts → posts ...） ----------
+  /* ---------- 视图解析（真实子页面 URL：/admin → home，/admin/posts → posts …） ---------- */
   function resolveView() {
     var p = window.location.pathname.replace(/\/+$/, '');
     var m = p.match(/\/(posts|comments|themes|password|system)$/);
@@ -121,7 +144,9 @@
   }
 
   function activateView(name) {
-    document.querySelectorAll('#tabs a').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === name); });
+    document.querySelectorAll('#tabs a, #nav-menu-panel a').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.tab === name);
+    });
     document.querySelectorAll('.fw-view').forEach(function (v) { v.classList.remove('active'); });
     var view = el('view-' + name);
     if (view) view.classList.add('active');
@@ -138,7 +163,7 @@
     if (name === 'home') loadDashboard();
   }
 
-  // ---------- 面板首页（dashboard） ----------
+  /* ---------- 面板首页（dashboard） ---------- */
   function loadDashboard() {
     fetch(API + '/posts?include_draft=1').then(function (r) { return r.json(); }).then(function (j) {
       if (j.code !== 0) return;
@@ -151,10 +176,11 @@
       if (!list.length) { box.innerHTML = '<div class="empty-tip py-4">' + T('emptyRecent') + '</div>'; return; }
       list.slice(0, 5).forEach(function (p) {
         var a = document.createElement('a');
-        a.href = (window.FUWARI_BASE || '/') + 'admin/posts?slug=' + encodeURIComponent(p.slug);
-        a.className = 'block px-3 py-2 rounded-lg hover:bg-[var(--btn-plain-bg-hover)] transition flex items-center gap-2 text-sm';
-        a.innerHTML = '<span class="font-medium truncate">' + escapeHtml(p.title) + '</span>' +
-          '<span class="ml-auto text-xs shrink-0 ' + (p.draft ? 'text-[var(--fw-err)]' : 'text-[var(--meta-divider)]') + '">' +
+        a.href = BASE + 'admin/posts?slug=' + encodeURIComponent(p.slug);
+        a.className = 'flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition-all text-sm';
+        a.innerHTML =
+          '<span class="font-medium truncate min-w-0">' + escapeHtml(p.title) + '</span>' +
+          '<span class="ml-auto text-xs shrink-0 ' + (p.draft ? 'badge badge-draft' : 'text-[var(--meta-divider)]') + '">' +
           (p.draft ? T('draftTag') : escapeHtml(p.published || '')) + '</span>';
         box.appendChild(a);
       });
@@ -176,28 +202,31 @@
         [T('sysPort'), d.port || ''],
       ].forEach(function (r2) {
         var row = document.createElement('div');
-        row.className = 'flex justify-between gap-3';
-        row.innerHTML = '<span class="text-[var(--meta-divider)]">' + escapeHtml(r2[0]) + '</span><span>' + escapeHtml(String(r2[1])) + '</span>';
+        row.className = 'sys-row';
+        row.innerHTML = '<span>' + escapeHtml(r2[0]) + '</span><span>' + escapeHtml(String(r2[1])) + '</span>';
         box.appendChild(row);
       });
     }).catch(function () {});
   }
 
-  // ---------- 主题切换 ----------
+  /* ---------- 主题切换 ---------- */
   function loadThemes() {
-    var sel = el('theme-switch');
     fetch(API + '/themes')
       .then(function (r) { return r.json(); })
       .then(function (json) {
         if (json.code !== 0) return;
         var list = json.data.list || [];
-        sel.innerHTML = '';
-        list.forEach(function (t) {
-          var opt = document.createElement('option');
-          opt.value = t.name;
-          opt.textContent = t.name + (t.description ? ' - ' + t.description : '');
-          if (t.active) opt.selected = true;
-          sel.appendChild(opt);
+        document.querySelectorAll('[id="theme-switch"],[id="theme-switch-m"]').forEach(function (sel) {
+          var prev = sel.value;
+          sel.innerHTML = '';
+          list.forEach(function (t) {
+            var opt = document.createElement('option');
+            opt.value = t.name;
+            opt.textContent = t.name + (t.description ? ' · ' + t.description : '');
+            if (t.active) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          if (prev && list.some(function (t) { return t.name === prev; })) sel.value = prev;
         });
       })
       .catch(function () {});
@@ -222,10 +251,11 @@
           var card = document.createElement('div');
           card.className = 'theme-card' + (t.active ? ' active' : '');
           card.innerHTML =
-            '<div class="nm">' + t.name + (t.active ? ' ✓' : '') + '</div>' +
-            (t.description ? '<div class="ds">' + t.description + '</div>' : '') +
-            (t.author ? '<div class="ds">by ' + t.author + '</div>' : '');
+            '<div class="nm">' + escapeHtml(t.name) + (t.active ? ' <span class="badge badge-ok">✓</span>' : '') + '</div>' +
+            (t.description ? '<div class="ds">' + escapeHtml(t.description) + '</div>' : '') +
+            (t.author ? '<div class="ds">by ' + escapeHtml(t.author) + '</div>' : '');
           card.onclick = function () {
+            if (t.active) return;
             if (t.name === 'default' || confirm(T('themeSwitch') + ': ' + t.name + '?')) applyTheme(t.name);
           };
           box.appendChild(card);
@@ -234,26 +264,37 @@
       .catch(function () {});
   }
 
-  // ---------- 文章 ----------
+  /* ---------- 文章 ---------- */
+  var postCache = [];
   function loadList() {
     fetch(API + '/posts?include_draft=1')
       .then(function (r) { return r.json(); })
       .then(function (json) {
         if (json.code !== 0) return;
-        var list = json.data.list || [];
-        var box = el('post-list');
-        box.innerHTML = '';
-        if (!list.length) { box.innerHTML = '<div class="empty">' + T('emptyPosts') + '</div>'; return; }
-        list.forEach(function (p) {
-          var item = document.createElement('div');
-          item.className = 'post-item' + (p.slug === currentSlug ? ' active' : '');
-          item.innerHTML = '<div class="t">' + escapeHtml(p.title) + '</div>' +
-            '<div class="s">' + escapeHtml(p.slug) + (p.draft ? ' · draft' : '') + '</div>';
-          item.onclick = function () { openPost(p.slug); };
-          box.appendChild(item);
-        });
+        postCache = json.data.list || [];
+        renderList();
       })
-      .catch(function () { setStatus(T('loadFail'), true); });
+      .catch(function () { toast(T('loadFail'), true); });
+  }
+  function renderList() {
+    var kw = (el('post-search').value || '').trim().toLowerCase();
+    var list = postCache.filter(function (p) {
+      if (!kw) return true;
+      return (p.title || '').toLowerCase().indexOf(kw) >= 0 || (p.slug || '').toLowerCase().indexOf(kw) >= 0;
+    });
+    var box = el('post-list');
+    box.innerHTML = '';
+    if (!list.length) { box.innerHTML = '<div class="empty-tip">' + T('emptyPosts') + '</div>'; return; }
+    list.forEach(function (p) {
+      var item = document.createElement('div');
+      item.className = 'post-item' + (p.slug === currentSlug ? ' active' : '');
+      item.innerHTML =
+        '<span class="t">' + escapeHtml(p.title) + '</span>' +
+        (p.draft ? '<span class="badge badge-draft">' + T('draftTag') + '</span>' : '') +
+        '<span class="s">' + escapeHtml(p.slug) + '</span>';
+      item.onclick = function () { openPost(p.slug); };
+      box.appendChild(item);
+    });
   }
   function openPost(slug) {
     fetch(API + '/posts/' + encodeURIComponent(slug))
@@ -268,10 +309,9 @@
         el('f-description').value = p.description || '';
         el('f-draft').checked = !!p.draft;
         if (cherry) cherry.setValue(p.body || '');
-        loadList();
-        setStatus(T('saved') ? '' : '');
+        renderList();
       })
-      .catch(function () { setStatus(T('loadFail'), true); });
+      .catch(function () { toast(T('loadFail'), true); });
   }
   function resetForm() {
     el('f-title').value = ''; el('f-category').value = ''; el('f-tags').value = '';
@@ -281,12 +321,12 @@
   function newPost() {
     currentSlug = null;
     resetForm();
-    setStatus(T('newMode'));
-    loadList();
+    toast(T('newMode'));
+    renderList();
   }
   function savePost() {
     var title = el('f-title').value.trim();
-    if (!title) { setStatus(T('needTitle'), true); return; }
+    if (!title) { toast(T('needTitle'), true); return; }
     var body = cherry ? cherry.getMarkdown() : '';
     var payload = {
       title: title,
@@ -303,33 +343,41 @@
       .then(handleRes)
       .then(function (data) {
         currentSlug = data.slug || currentSlug;
-        setStatus(T('saved') + ': ' + currentSlug);
+        toast(T('saved') + ': ' + currentSlug);
         loadList();
       })
       .catch(function (e) {
-        if (e.needToken) setStatus(T('needToken'), true);
-        else setStatus(e.message, true);
+        if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+        else toast(e.message, true);
       });
   }
   function deletePost() {
-    if (!currentSlug) { setStatus(T('noSelection'), true); return; }
-    if (!confirm('Delete "' + currentSlug + '"?')) return;
+    if (!currentSlug) { toast(T('noSelection'), true); return; }
+    if (!confirm(T('confirmDelete') + ' "' + currentSlug + '"?')) return;
     fetch(API + '/posts/' + encodeURIComponent(currentSlug), { method: 'DELETE', headers: authHeaders() })
       .then(handleRes)
       .then(function () {
         currentSlug = null;
         resetForm();
-        setStatus(T('deleted'));
+        toast(T('deleted'));
         loadList();
       })
       .catch(function (e) {
-        if (e.needToken) setStatus(T('needToken'), true);
-        else setStatus(e.message, true);
+        if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+        else toast(e.message, true);
       });
   }
   function initCherry() {
     if (cherry) return;
     cherryInit = true;
+    // 动态加载 Cherry 样式（与评论挂件一致，FUWARI_BASE 拼接，严禁硬编码绝对路径）
+    if (!document.querySelector('link[data-cherry-css]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = BASE + 'assets/cherry/cherry-markdown.min.css';
+      link.setAttribute('data-cherry-css', '1');
+      document.head.appendChild(link);
+    }
     cherry = new Cherry({
       id: 'editor',
       value: '',
@@ -344,16 +392,16 @@
             .then(function (r) { return r.json(); })
             .then(function (json) {
               if (json.code === 0) { callback({ url: json.data.url }); }
-              else { setStatus(T('uploadFail') + ': ' + json.message, true); callback({}); }
+              else { toast(T('uploadFail') + ': ' + json.message, true); callback({}); }
             })
-            .catch(function () { setStatus(T('networkErr'), true); callback({}); });
+            .catch(function () { toast(T('networkErr'), true); callback({}); });
         },
       },
       toolbars: { showToolbar: true },
     });
   }
 
-  // ---------- 评论管理 ----------
+  /* ---------- 评论管理 ---------- */
   function loadComments() {
     var slug = el('cmt-slug').value.trim();
     var q = slug ? '?slug=' + encodeURIComponent(slug) : '';
@@ -372,21 +420,24 @@
             '<div class="head"><span class="nm">' + escapeHtml(cm.nickname || '') + '</span>' +
             '<span class="tm">' + escapeHtml(cm.target_slug || '') + ' · ' + escapeHtml(cm.created_at || '') + '</span></div>' +
             '<div class="ct">' + escapeHtml(cm.content || '') + '</div>' +
-            '<div class="act"><button class="btn-mini btn-danger" data-id="' + cm.id + '">' + (lang === 'zh' ? '删除' : 'Delete') + '</button></div>';
+            '<div class="act"><button class="fw-btn-danger rounded-lg h-9 px-4 text-sm" data-id="' + cm.id + '">' + T('btnDelete') + '</button></div>';
           item.querySelector('button').onclick = function () {
-            if (!confirm('Delete comment #' + cm.id + '?')) return;
+            if (!confirm(T('confirmDelete') + ' comment #' + cm.id + '?')) return;
             fetch(API + '/comments/' + cm.id, { method: 'DELETE', headers: authHeaders() })
               .then(handleRes)
-              .then(function () { loadComments(); })
-              .catch(function (e) { setStatus(e.needToken ? T('needToken') : e.message, true); });
+              .then(function () { toast(T('deleted')); loadComments(); })
+              .catch(function (e) {
+                if (e.needToken) { toast(T('needToken'), true); openAdminPanel(); }
+                else toast(e.message, true);
+              });
           };
           box.appendChild(item);
         });
       })
-      .catch(function () { setStatus(T('loadFail'), true); });
+      .catch(function () { toast(T('loadFail'), true); });
   }
 
-  // ---------- 密码 ----------
+  /* ---------- 密码 ---------- */
   function submitPwdChange() {
     var oldP = el('pwd-old').value.trim();
     var newP = el('pwd-new').value;
@@ -403,15 +454,15 @@
     })
       .then(handleRes)
       .then(function () {
-        localStorage.setItem(TOKEN_KEY, newP);
-        el('token').value = newP;
+        setToken(newP);
         msg.classList.add('ok');
         msg.textContent = T('pwdOk');
+        toast(T('pwdOk'));
       })
-      .catch(function (e) { msg.textContent = (e.message || T('pwdFail')) + (e.needToken ? '' : ''); });
+      .catch(function (e) { msg.textContent = (e.message || T('pwdFail')); });
   }
 
-  // ---------- 系统 ----------
+  /* ---------- 系统 ---------- */
   function loadSystemInfo() {
     var box = el('sys-info');
     box.innerHTML = '<div class="empty-tip">' + T('systemTitle') + '…</div>';
@@ -420,7 +471,7 @@
       .then(function (json) {
         var d = json.data || {};
         box.innerHTML = '';
-        var rows = [
+        [
           ['Version', d.version || ''],
           ['Host', d.hostname || ''],
           ['Uptime', d.uptime ? (d.uptime + 's') : ''],
@@ -428,8 +479,7 @@
           ['Themes', (d.themes && d.themes.join(', ')) || ''],
           ['Extensions', (d.extensions && d.extensions.join(', ')) || ''],
           ['Database', d.database || ''],
-        ];
-        rows.forEach(function (r) {
+        ].forEach(function (r) {
           var row = document.createElement('div');
           row.className = 'sys-row';
           row.innerHTML = '<span>' + escapeHtml(r[0]) + '</span><span>' + escapeHtml(String(r[1])) + '</span>';
@@ -439,37 +489,86 @@
       .catch(function () { box.innerHTML = '<div class="empty-tip">' + T('loadFail') + '</div>'; });
   }
 
+  /* ---------- 浮层面板（前台 float-panel 语言） ---------- */
+  function togglePanel(id) {
+    var p = el(id);
+    if (p) p.classList.toggle('float-panel-closed');
+  }
+  function openAdminPanel() {
+    el('admin-panel').classList.remove('float-panel-closed');
+    var m = el('token-m'); if (m) m.focus();
+  }
+  function bindClickOutside(panelId, ignoreIds) {
+    document.addEventListener('click', function (e) {
+      var panel = el(panelId);
+      if (!panel || panel.classList.contains('float-panel-closed')) return;
+      var t = e.target;
+      if (!(t instanceof Node)) return;
+      for (var i = 0; i < ignoreIds.length; i++) {
+        var ig = el(ignoreIds[i]);
+        if (ig && (ig === t || ig.contains(t))) return;
+      }
+      panel.classList.add('float-panel-closed');
+    });
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ---------- init ----------
+  /* ---------- init ---------- */
   function init() {
-    document.querySelectorAll('#tabs button').forEach(function (b) {
-      b.addEventListener('click', function () { switchTab(b.dataset.tab); });
+    // 认证
+    setToken(getToken());
+    el('token').addEventListener('change', function () { setToken(this.value); });
+    el('token-m').addEventListener('keydown', function (e) { if (e.key === 'Enter') el('token-ok').click(); });
+    el('token-ok').addEventListener('click', function () {
+      setToken(el('token-m').value);
+      toast(T('tokenSaved'));
+      el('admin-panel').classList.add('float-panel-closed');
     });
+
+    // 浮层面板
+    el('admin-switch').addEventListener('click', function (e) { e.stopPropagation(); togglePanel('admin-panel'); });
+    el('nav-menu-switch').addEventListener('click', function (e) { e.stopPropagation(); togglePanel('nav-menu-panel'); });
+    bindClickOutside('admin-panel', ['admin-panel', 'admin-switch']);
+    bindClickOutside('nav-menu-panel', ['nav-menu-panel', 'nav-menu-switch']);
+
+    // 深浅色（桌面 + 移动）
+    el('scheme-switch').addEventListener('click', toggleTheme);
+    el('scheme-switch-m').addEventListener('click', toggleTheme);
+
+    // 主题 / 语言（桌面 + 移动同步）
+    document.querySelectorAll('[id="theme-switch"],[id="theme-switch-m"]').forEach(function (sel) {
+      sel.addEventListener('change', function (e) {
+        document.querySelectorAll('[id="theme-switch"],[id="theme-switch-m"]').forEach(function (o) { if (o !== e.target) o.value = e.target.value; });
+        applyTheme(e.target.value);
+      });
+    });
+    document.querySelectorAll('[id="lang-switch"],[id="lang-switch-m"]').forEach(function (sel) {
+      sel.addEventListener('change', function (e) {
+        lang = e.target.value;
+        localStorage.setItem('fuwari_lang', lang);
+        applyI18n();
+        activateView(resolveView());
+      });
+    });
+
+    // 文章
     el('btn-save').addEventListener('click', savePost);
-    el('btn-new').addEventListener('click', newPost);
+    el('btn-new').addEventListener('click', function (e) { e.preventDefault(); newPost(); });
     el('btn-delete').addEventListener('click', deletePost);
+    el('post-search').addEventListener('input', renderList);
     el('pwd-ok').addEventListener('click', submitPwdChange);
     el('cmt-load').addEventListener('click', loadComments);
-    el('theme-switch').addEventListener('change', function (e) { applyTheme(e.target.value); });
-    el('lang-switch').addEventListener('change', function (e) {
-      lang = e.target.value;
-      localStorage.setItem('fuwari_lang', lang);
-      applyI18n();
-      activateView(document.querySelector('#tabs a.active') ? document.querySelector('#tabs a.active').dataset.tab : 'home');
-    });
-    el('scheme-switch').addEventListener('click', toggleTheme);
+    el('cmt-slug').addEventListener('keydown', function (e) { if (e.key === 'Enter') loadComments(); });
+    el('f-title').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el('f-category').focus(); } });
+
     applyHue();
     syncTheme();
-    el('token').addEventListener('keydown', function (e) { if (e.key === 'Enter') savePost(); });
-    var saved = localStorage.getItem(TOKEN_KEY);
-    if (saved) el('token').value = saved;
+    applyI18n();
+    updateAuthBadge();
     loadThemes();
-    loadList();
-    setStatus(T('ready'));
-    // 按当前子页面 URL 激活视图（/admin → 面板，/admin/posts → 文章 ...）
     activateView(resolveView());
   }
 
