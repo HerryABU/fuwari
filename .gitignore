@@ -35,6 +35,8 @@ yarn.lock
 # ==================== fuwari-server runtime ====================
 # Go build artifacts
 *.exe
+server/*.exe~
+server/*.exe.bak
 server/fuwari-server
 # runtime database & logs
 data/
